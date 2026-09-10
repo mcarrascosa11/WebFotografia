@@ -29,26 +29,25 @@ body.film-mode{background:var(--film)}
 .topbar{position:fixed;inset:0 0 auto;z-index:20;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px;font-size:10px;line-height:1.25;letter-spacing:.16em;mix-blend-mode:multiply}
 .wordmark,.contact{color:inherit;text-decoration:none}.subbrand{margin-top:7px;font-size:8px;letter-spacing:.18em;color:rgba(29,27,24,.62)}
 .mode{position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:20;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:rgba(29,27,24,.7)}
-.chapter{padding:5vh 3.8vw 9vh;max-width:1800px;margin:0 auto}.chapter + .chapter{padding-top:8vh}
-.spread{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:2.2vw;row-gap:5.5vw;align-items:start}
-.photo{margin:0;overflow:hidden;opacity:0;transform:translateY(24px);transition:opacity .85s ease,transform .95s cubic-bezier(.2,.7,.2,1)}
+.chapter{padding:8vh 6vw 12vh;max-width:1500px;margin:0 auto}
+.chapter + .chapter{padding-top:14vh}
+.spread{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:3.2vw;row-gap:9vw;align-items:start}
+.photo{margin:0;align-self:start;overflow:visible;opacity:0;transform:translateY(30px);transition:opacity .9s ease,transform 1s cubic-bezier(.2,.7,.2,1)}
 .photo.visible{opacity:1;transform:translateY(0)}
-.photo img{display:block;width:100%;height:auto;object-fit:contain;background:transparent;filter:saturate(.88) contrast(.97)}
-.landscape{aspect-ratio:16/9}.square{aspect-ratio:1}.portrait{aspect-ratio:3/4}
-/* Grande, disperso y sin superposición. Cada imagen conserva su proporción. */
-.d1{grid-column:1/8}.d2{grid-column:9/13}.d3{grid-column:2/7}.d4{grid-column:7/13}.d5{grid-column:1/5}.d6{grid-column:6/13}
-.f1{grid-column:1/9}.f2{grid-column:10/13}.f3{grid-column:2/7}.f4{grid-column:7/13}.f5{grid-column:1/5}.f6{grid-column:5/10}.f7{grid-column:9/13}
+.photo img{display:block;width:100%;height:auto;object-fit:contain;object-position:center;filter:saturate(.88) contrast(.97)}
+/* Cada fotografía conserva automáticamente su proporción original. No se fuerza ningún recorte. */
+.d1{grid-column:1/8}.d2{grid-column:9/13}.d3{grid-column:2/7}.d4{grid-column:8/13}.d5{grid-column:1/5}.d6{grid-column:6/13}
+.f1{grid-column:1/8}.f2{grid-column:9/13}.f3{grid-column:2/7}.f4{grid-column:8/13}.f5{grid-column:1/5}.f6{grid-column:5/10}.f7{grid-column:9/13}
 .contact-section{min-height:88vh;padding:14vh 9vw 9vh;display:flex;flex-direction:column;justify-content:space-between;border-top:1px solid var(--line)}
 .contact-section h1{margin:0;font:400 clamp(72px,10vw,150px)/.84 "Cormorant Garamond",Georgia,serif;letter-spacing:-.04em}
 .contact-info{display:flex;flex-direction:column;gap:10px;font-size:11px;letter-spacing:.08em}.contact-info a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line);width:max-content}
 footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px 24px 28px;border-top:1px solid var(--line);font-size:9px;letter-spacing:.16em}footer a{color:inherit;text-decoration:none}
 @media(max-width:700px){
 .topbar{padding:16px}.mode{top:auto;bottom:16px;left:auto;right:16px;transform:none;font-size:8px}
-.chapter{padding:5vh 6vw 14vw}.chapter + .chapter{padding-top:8vh}
-.spread{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:3vw;row-gap:14vw}
-.landscape{aspect-ratio:16/9}.square{aspect-ratio:1}.portrait{aspect-ratio:3/4}
-.d1{grid-column:1/7}.d2{grid-column:2/7}.d3{grid-column:1/6}.d4{grid-column:2/7}.d5{grid-column:1/5}.d6{grid-column:1/7}
-.f1{grid-column:1/7}.f2{grid-column:2/7}.f3{grid-column:1/6}.f4{grid-column:1/7}.f5{grid-column:1/5}.f6{grid-column:1/7}.f7{grid-column:2/7}
+.chapter{padding:7vh 6vw 16vw}.chapter + .chapter{padding-top:12vh}
+.spread{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:4vw;row-gap:15vw}
+.d1{grid-column:1/6}.d2{grid-column:3/7}.d3{grid-column:1/5}.d4{grid-column:2/7}.d5{grid-column:1/5}.d6{grid-column:2/7}
+.f1{grid-column:1/7}.f2{grid-column:3/7}.f3{grid-column:1/5}.f4{grid-column:2/7}.f5{grid-column:1/5}.f6{grid-column:2/6}.f7{grid-column:3/7}
 .contact-section{min-height:85vh;padding:14vh 9vw 9vh}.contact-section h1{font-size:22vw}.subbrand{font-size:7px}
 }
 </style>
@@ -59,27 +58,30 @@ footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;paddin
 <div class="mode" id="mode">DIGITAL</div>
 <main>
 <section class="chapter digital" aria-label="Fotografía digital"><div class="spread">
-<figure class="photo landscape d1 reveal"><img src="/digital/01.jpg" alt="Fotografía de boda en digital" fetchpriority="high"></figure>
-<figure class="photo portrait d2 reveal"><img src="/digital/02.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
-<figure class="photo square d3 reveal"><img src="/digital/03.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
-<figure class="photo landscape d4 reveal"><img src="/digital/04.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
-<figure class="photo portrait d5 reveal"><img src="/digital/01.jpg" alt="Fotografía de boda" loading="lazy"></figure>
-<figure class="photo landscape d6 reveal"><img src="/digital/03.jpg" alt="Fotografía de boda" loading="lazy"></figure>
+<figure class="photo d1 reveal"><img src="/digital/01.jpg" alt="Fotografía de boda en digital" fetchpriority="high"></figure>
+<figure class="photo d2 reveal"><img src="/digital/02.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
+<figure class="photo d3 reveal"><img src="/digital/03.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
+<figure class="photo d4 reveal"><img src="/digital/04.jpg" alt="Fotografía de boda en digital" loading="lazy"></figure>
+<figure class="photo d5 reveal"><img src="/digital/01.jpg" alt="Fotografía de boda" loading="lazy"></figure>
+<figure class="photo d6 reveal"><img src="/digital/03.jpg" alt="Fotografía de boda" loading="lazy"></figure>
 </div></section>
 <section class="chapter film" aria-label="Fotografía analógica"><div class="spread">
-<figure class="photo landscape f1 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0009.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo portrait f2 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0017.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo square f3 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0024.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo landscape f4 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0027.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo portrait f5 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0030_2.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo square f6 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0036.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
-<figure class="photo portrait f7 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0038.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f1 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0009.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f2 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0017.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f3 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0024.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f4 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0027.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f5 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0030_2.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f6 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0036.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
+<figure class="photo f7 reveal"><img src="/film/01_06_2026_Marcos_Carrascosa_0038.jpg" alt="Fotografía de boda en analógico" loading="lazy"></figure>
 </div></section>
 <section class="contact-section" id="contact"><div></div><h1>Contacto.</h1><div class="contact-info"><a href="mailto:marcoscarrascosa.arq@gmail.com">marcoscarrascosa.arq@gmail.com</a><a href="tel:+34699828171">699 828 171</a><a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram ↗</a><span>Zaragoza · España</span></div></section>
 </main>
 <footer><span>© 2026 MARCOS CARRASCOSA</span><span>DIGITAL / ANALÓGICA</span><a href="https://www.instagram.com/" target="_blank" rel="noopener">INSTAGRAM ↗</a></footer>
 <script>
-const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.04});document.querySelectorAll(".reveal").forEach(e=>observer.observe(e));
-const body=document.body,mode=document.getElementById("mode"),film=document.querySelector(".film");const bgObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){body.classList.add("film-mode");mode.textContent="ANALÓGICA"}else if(e.boundingClientRect.top>0){body.classList.remove("film-mode");mode.textContent="DIGITAL"}}),{threshold:.16});bgObserver.observe(film);
+const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.05});
+document.querySelectorAll(".reveal").forEach(e=>observer.observe(e));
+const body=document.body,mode=document.getElementById("mode"),film=document.querySelector(".film");
+const bgObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){body.classList.add("film-mode");mode.textContent="ANALÓGICA"}else if(e.boundingClientRect.top>0){body.classList.remove("film-mode");mode.textContent="DIGITAL"}}),{threshold:.16});
+bgObserver.observe(film);
 </script>
 </body></html>
