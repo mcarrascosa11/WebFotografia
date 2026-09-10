@@ -23,29 +23,18 @@
 <style>
 :root{--ink:#1d1b18;--digital:#ece8df;--film:#d7cbb9;--line:rgba(29,27,24,.18)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;color:var(--ink);font-family:"DM Sans",Arial,sans-serif;background:var(--digital);transition:background-color 1.1s ease;overflow-x:hidden}
-body.film-mode{background:var(--film)}
+body{margin:0;color:var(--ink);font-family:"DM Sans",Arial,sans-serif;background:var(--digital);transition:background-color 1.1s ease;overflow-x:hidden}body.film-mode{background:var(--film)}
 .grain{position:fixed;inset:0;pointer-events:none;z-index:30;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E")}
 .topbar{position:fixed;inset:0 0 auto;z-index:20;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px;font-size:10px;line-height:1.25;letter-spacing:.16em;mix-blend-mode:multiply}.wordmark,.contact{color:inherit;text-decoration:none}.subbrand{margin-top:7px;font-size:8px;letter-spacing:.18em;color:rgba(29,27,24,.62)}
 .mode{position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:20;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:rgba(29,27,24,.7)}
-.chapter{padding:8vh 5vw 9vh}.chapter + .chapter{padding-top:8vh}
-.gallery{width:100%;display:flex;flex-direction:column;align-items:center;gap:6vw}
-.row{display:flex;align-items:flex-start;justify-content:center;gap:2.8vw;width:fit-content;max-width:100%}
-.photo{margin:0;flex:0 0 auto;opacity:0;transform:translateY(24px);transition:opacity .85s ease,transform .95s cubic-bezier(.2,.7,.2,1)}
-.photo.visible{opacity:1;transform:translateY(0)}
-.photo img{display:block;width:auto;height:min(56vh,560px);max-width:46vw;object-fit:contain;object-position:center;filter:saturate(.88) contrast(.97)}
-.row.reverse .photo:first-child{order:2}.row.reverse .photo:last-child{order:1}
-.contact-section{min-height:88vh;padding:14vh 9vw 9vh;display:flex;flex-direction:column;justify-content:space-between;border-top:1px solid var(--line)}
-.contact-section h1{margin:0;font:400 clamp(72px,10vw,150px)/.84 "Cormorant Garamond",Georgia,serif;letter-spacing:-.04em}
-.contact-info{display:flex;flex-direction:column;gap:10px;font-size:11px;letter-spacing:.08em}.contact-info a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line);width:max-content}
+.chapter{padding:6vh 4.5vw 10vh}.chapter + .chapter{padding-top:8vh}
+.gallery{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,.9fr);gap:10px;align-items:start}
+.tile{margin:0}.tile img{display:block;width:100%;height:auto;filter:saturate(.88) contrast(.97)}
+.feature{grid-column:auto}.stack{display:flex;flex-direction:column;gap:10px}.stack .tile{width:100%}
+.tile{opacity:0;transform:translateY(22px);transition:opacity .85s ease,transform .95s cubic-bezier(.2,.7,.2,1)}.tile.visible{opacity:1;transform:translateY(0)}
+.contact-section{min-height:88vh;padding:14vh 9vw 9vh;display:flex;flex-direction:column;justify-content:space-between;border-top:1px solid var(--line)}.contact-section h1{margin:0;font:400 clamp(72px,10vw,150px)/.84 "Cormorant Garamond",Georgia,serif;letter-spacing:-.04em}.contact-info{display:flex;flex-direction:column;gap:10px;font-size:11px;letter-spacing:.08em}.contact-info a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line);width:max-content}
 footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px 24px 28px;border-top:1px solid var(--line);font-size:9px;letter-spacing:.16em}footer a{color:inherit;text-decoration:none}
-@media(max-width:700px){
-.topbar{padding:16px}.mode{top:auto;bottom:16px;left:auto;right:16px;transform:none;font-size:8px}
-.chapter{padding:8vh 6vw 16vw}.chapter+.chapter{padding-top:10vh}
-.gallery{gap:15vw}.row{flex-direction:column;align-items:flex-start;gap:10vw;width:100%}.row.reverse .photo:first-child,.row.reverse .photo:last-child{order:initial}
-.photo{width:100%}.photo img{height:auto;width:auto;max-width:88vw;max-height:none}.row:nth-child(even) .photo{align-self:flex-end}
-.contact-section{min-height:85vh;padding:14vh 9vw 9vh}.contact-section h1{font-size:22vw}.subbrand{font-size:7px}
-}
+@media(max-width:700px){.topbar{padding:16px}.mode{top:auto;bottom:16px;left:auto;right:16px;transform:none;font-size:8px}.chapter{padding:7vh 5vw 13vw}.gallery{display:flex;flex-direction:column;gap:10vw}.feature,.stack{width:100%}.stack{gap:10vw}.tile img{width:auto;max-width:100%;height:auto;max-height:none}.contact-section{min-height:85vh;padding:14vh 9vw 9vh}.contact-section h1{font-size:22vw}.subbrand{font-size:7px}}
 </style>
 </head>
 <body>
@@ -53,50 +42,38 @@ footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;paddin
 <header class="topbar"><div><a class="wordmark" href="#">MARCOS<br>CARRASCOSA</a><div class="subbrand">FOTOGRAFÍA DE BODAS</div></div><a class="contact" href="#contact">CONTACTO</a></header>
 <div class="mode" id="mode">DIGITAL</div>
 <main>
-<section class="chapter digital" id="digital" aria-label="Fotografía digital"><div class="gallery" data-gallery="digital"></div></section>
-<section class="chapter film" id="film" aria-label="Fotografía analógica"><div class="gallery" data-gallery="film"></div></section>
+<section class="chapter digital" id="digital" aria-label="Fotografía digital">
+<div class="gallery" id="digital-gallery"></div>
+</section>
+<section class="chapter film" id="film" aria-label="Fotografía analógica">
+<div class="gallery" id="film-gallery"></div>
+</section>
 <section class="contact-section" id="contact"><div></div><h1>Contacto.</h1><div class="contact-info"><a href="mailto:marcoscarrascosa.arq@gmail.com">marcoscarrascosa.arq@gmail.com</a><a href="tel:+34699828171">699 828 171</a><a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram ↗</a><span>Zaragoza · España</span></div></section>
 </main>
 <footer><span>© 2026 MARCOS CARRASCOSA</span><span>DIGITAL / ANALÓGICA</span><a href="https://www.instagram.com/" target="_blank" rel="noopener">INSTAGRAM ↗</a></footer>
 <script>
 const digitalFiles=['01.jpg','02.jpg','03.jpg','04.jpg'];
 const filmFiles=['01_06_2026_Marcos_Carrascosa_0009.jpg','01_06_2026_Marcos_Carrascosa_0017.jpg','01_06_2026_Marcos_Carrascosa_0024.jpg','01_06_2026_Marcos_Carrascosa_0027.jpg','01_06_2026_Marcos_Carrascosa_0030_2.jpg','01_06_2026_Marcos_Carrascosa_0036.jpg','01_06_2026_Marcos_Carrascosa_0038.jpg'];
-
-function imageItem(src,label,priority=false){
-  return new Promise(resolve=>{
-    const figure=document.createElement('figure');figure.className='photo reveal';
-    const img=document.createElement('img');img.src=src;img.alt=label;img.loading=priority?'eager':'lazy';img.decoding='async';if(priority)img.fetchPriority='high';
-    const done=()=>resolve({figure,portrait:img.naturalHeight>img.naturalWidth,area:img.naturalWidth*img.naturalHeight});
-    img.addEventListener('load',done,{once:true});img.addEventListener('error',()=>resolve({figure,portrait:false,area:0}),{once:true});
-    figure.appendChild(img);
-  });
+function load(src,alt,priority){return new Promise(resolve=>{const img=new Image();img.src=src;img.alt=alt;img.decoding='async';img.loading=priority?'eager':'lazy';if(priority)img.fetchPriority='high';img.onload=()=>resolve({img,portrait:img.naturalHeight>img.naturalWidth});img.onerror=()=>resolve(null)})}
+async function build(id,files,folder,label){
+ const el=document.getElementById(id);const data=(await Promise.all(files.map((f,i)=>load(`/${folder}/${f}`,label,i===0)))).filter(Boolean);const portraits=data.filter(x=>x.portrait),landscapes=data.filter(x=>!x.portrait);
+ let first=true;
+ while(portraits.length||landscapes.length){
+   const mosaic=document.createElement('div');mosaic.className='gallery';
+   const left=document.createElement('figure');left.className='tile feature';const center=document.createElement('figure');center.className='tile feature';const stack=document.createElement('div');stack.className='stack';
+   const a=portraits.shift()||landscapes.shift();const b=portraits.shift()||landscapes.shift();
+   if(a)left.appendChild(a.img);if(b)center.appendChild(b.img);
+   for(let i=0;i<3&&landscapes.length;i++){const t=document.createElement('figure');t.className='tile';t.appendChild(landscapes.shift().img);stack.appendChild(t)}
+   if(first){mosaic.append(left,center,stack);first=false}else{mosaic.append(left,center,stack)}
+   if(left.children.length||center.children.length||stack.children.length)el.appendChild(mosaic);else break;
+   if(!portraits.length&&!landscapes.length)break;
+ }
+ el.querySelectorAll('.tile').forEach(t=>{if(!t.querySelector('img'))t.remove()});
+ const observer=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.04});el.querySelectorAll('.tile').forEach(t=>observer.observe(t));
 }
-
-async function buildGallery(selector,files,folder,label){
-  const el=document.querySelector(selector);
-  const data=await Promise.all(files.map((file,i)=>imageItem(`/${folder}/${file}`,label,i===0&&folder==='digital')));
-  const portraits=data.filter(x=>x.portrait);
-  const landscapes=data.filter(x=>!x.portrait);
-  let reverse=false;
-  while(portraits.length||landscapes.length){
-    const pair=[];
-    if(portraits.length&&landscapes.length){
-      pair.push(reverse?landscapes.shift():portraits.shift());
-      pair.push(reverse?portraits.shift():landscapes.shift());
-    }else if(landscapes.length){pair.push(landscapes.shift());if(landscapes.length)pair.push(landscapes.shift());}
-    else {pair.push(portraits.shift());if(portraits.length)pair.push(portraits.shift());}
-    const row=document.createElement('div');row.className='row'+(reverse?' reverse':'');
-    pair.forEach(item=>row.appendChild(item.figure));el.appendChild(row);reverse=!reverse;
-  }
-  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.05});
-  el.querySelectorAll('.reveal').forEach(e=>observer.observe(e));
-}
-
-buildGallery('[data-gallery="digital"]',digitalFiles,'digital','Fotografía de boda en digital');
-buildGallery('[data-gallery="film"]',filmFiles,'film','Fotografía de boda en analógico');
-
-const body=document.body,mode=document.getElementById('mode'),film=document.getElementById('film');
-new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){body.classList.add('film-mode');mode.textContent='ANALÓGICA'}else if(e.boundingClientRect.top>0){body.classList.remove('film-mode');mode.textContent='DIGITAL'}}),{threshold:.18}).observe(film);
+build('digital-gallery',digitalFiles,'digital','Fotografía de boda en digital');
+build('film-gallery',filmFiles,'film','Fotografía de boda en analógico');
+const body=document.body,mode=document.getElementById('mode'),film=document.getElementById('film');new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){body.classList.add('film-mode');mode.textContent='ANALÓGICA'}else if(e.boundingClientRect.top>0){body.classList.remove('film-mode');mode.textContent='DIGITAL'}}),{threshold:.18}).observe(film);
 </script>
 </body>
 </html>
