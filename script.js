@@ -4,138 +4,134 @@
   document.documentElement.classList.remove('no-js');
   document.documentElement.classList.add('js-ready');
 
-  // ==========================================
-  // Detección de orientación real
-  // ==========================================
+  const ROW_PX = 8;
+  const GAP_PX = 12;
+
   function detectOrientation(img) {
-    const w = img.naturalWidth, h = img.naturalHeight;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
     if (!w || !h) return 'square';
     const r = w / h;
-    if (r > 1.05) return 'landscape';
-    if (r < 0.95) return 'portrait';
+    if (r > 1.12) return 'landscape';
+    if (r < 0.88) return 'portrait';
     return 'square';
   }
 
-  // ==========================================
-  // Asignar spans en filas de 3 columnas.
-  // Regla clave: si la foto es horizontal y caben 2 columnas
-  // libres en la fila actual → span 2. Si no, span 1 y se
-  // coloca junto a lo que venga después con dense.
-  // ==========================================
-  function assignSpans(figures) {
-    let col = 0;
+  function chooseSpan(fig, orientation) {
+    const gallery = fig.parentElement;
+    const items = Array.from(gallery.children);
+    const index = items.indexOf(fig);
 
-    figures.forEach(function (fig) {
-      const img = fig.querySelector('img');
-      const o = (img && img.dataset.orientation) || 'portrait';
+    // Base editorial rhythm:
+    // landscape alternates between 2 and 1 columns;
+    // portraits are usually 1 column, with occasional 2-column emphasis;
+    // squares stay at 1 column.
+    if (orientation === 'landscape') return index % 3 === 0 ? 1 : 2;
+    if (orientation === 'portrait') return index % 5 === 2 ? 2 : 1;
+    return 1;
+  }
 
-      let span = 1;
+  function sizeItem(fig) {
+    const img = fig.querySelector('img');
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
 
-      if (o === 'landscape' && col <= 1) {
-        span = 2;
-      }
+    const orientation = img.dataset.orientation || detectOrientation(img);
+    const span = Number(fig.dataset.span || chooseSpan(fig, orientation));
+    fig.dataset.orientation = orientation;
+    fig.dataset.span = String(span);
 
-      if (col + span > 3) {
-        col = 0;
-        span = (o === 'landscape') ? 2 : 1;
-      }
-
-      fig.dataset.span = String(span);
-      col += span;
-      if (col >= 3) col = 0;
+    // The image keeps its natural ratio. We only tell CSS how many grid
+    // columns it occupies, then reserve exactly its rendered height in rows.
+    requestAnimationFrame(function () {
+      const height = img.getBoundingClientRect().height;
+      const rowSpan = Math.max(1, Math.ceil((height + GAP_PX) / (ROW_PX + GAP_PX)));
+      fig.style.gridRowEnd = 'span ' + rowSpan;
     });
   }
 
   function processImage(img) {
     const fig = img.closest('.gallery__item');
     if (!fig) return;
-    const o = detectOrientation(img);
-    img.dataset.orientation = o;
-    fig.classList.add('is-' + o);
+    fig.dataset.orientation = detectOrientation(img);
+    fig.dataset.span = String(chooseSpan(fig, fig.dataset.orientation));
+    sizeItem(fig);
   }
 
-  // ==========================================
-  // Animación de entrada
-  // ==========================================
+  // Recalculate after responsive width changes.
+  function resizeAll() {
+    document.querySelectorAll('.gallery__item').forEach(sizeItem);
+  }
+
   const reveal = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) {
-        e.target.classList.add('revealed');
-        reveal.unobserve(e.target);
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        reveal.unobserve(entry.target);
       }
     });
-  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.01 });
+  }, { rootMargin: '0px 0px -5% 0px', threshold: 0.01 });
 
-  // ==========================================
-  // Cambio de modo DIGITAL / ANALÓGICA
-  // ==========================================
+  // Background + mode indicator
   const modeEl = document.getElementById('modeIndicator');
   const digitalSection = document.getElementById('digital');
   const analogueSection = document.getElementById('analogica');
-  let mode = 'digital';
+  let currentMode = 'digital';
 
-  function setMode(m) {
-    if (m === mode) return;
-    mode = m;
-    if (m === 'analogue') {
-      document.body.classList.add('mode-analogue');
-      if (modeEl) modeEl.textContent = 'ANALÓGICA';
+  function setMode(mode) {
+    if (mode === currentMode) return;
+    currentMode = mode;
+    document.body.classList.toggle('mode-analogue', mode === 'analogue');
+    if (modeEl) modeEl.textContent = mode === 'analogue' ? 'ANALÓGICA' : 'DIGITAL';
+  }
+
+  const sectionObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      if (entry.target.id === 'analogica') setMode('analogue');
+      if (entry.target.id === 'digital') setMode('digital');
+    });
+  }, { rootMargin: '-35% 0px -35% 0px', threshold: 0 });
+
+  function initGallery(gallery) {
+    const images = gallery.querySelectorAll('img');
+
+    images.forEach(function (img) {
+      const loaded = function () {
+        processImage(img);
+      };
+      if (img.complete && img.naturalWidth > 0) loaded();
+      else {
+        img.addEventListener('load', loaded, { once: true });
+        img.addEventListener('error', function () {
+          const fig = img.closest('.gallery__item');
+          if (fig) {
+            fig.dataset.orientation = 'square';
+            fig.dataset.span = '1';
+          }
+        }, { once: true });
+      }
+
+      const fig = img.closest('.gallery__item');
+      if (fig) reveal.observe(fig);
+    });
+  }
+
+  function init() {
+    document.querySelectorAll('.gallery').forEach(initGallery);
+    if (digitalSection) sectionObserver.observe(digitalSection);
+    if (analogueSection) sectionObserver.observe(analogueSection);
+    if (modeEl) setTimeout(function () { modeEl.classList.add('visible'); }, 500);
+
+    if ('ResizeObserver' in window) {
+      const ro = new ResizeObserver(function () { resizeAll(); });
+      document.querySelectorAll('.gallery').forEach(function (gallery) { ro.observe(gallery); });
     } else {
-      document.body.classList.remove('mode-analogue');
-      if (modeEl) modeEl.textContent = 'DIGITAL';
+      window.addEventListener('resize', resizeAll, { passive: true });
     }
   }
 
-  const sectionObs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (!e.isIntersecting) return;
-      if (e.target.id === 'analogica') setMode('analogue');
-      else if (e.target.id === 'digital') setMode('digital');
-    });
-  }, { rootMargin: '-30% 0px -30% 0px', threshold: 0 });
-
-  // ==========================================
-  // Init
-  // ==========================================
-  function init() {
-    const galleries = document.querySelectorAll('.gallery');
-
-    galleries.forEach(function (gallery) {
-      const figures = Array.from(gallery.querySelectorAll('.gallery__item'));
-      const imgs = figures.map(function (f) { return f.querySelector('img'); }).filter(Boolean);
-
-      let pending = imgs.length;
-
-      function onLoad() {
-        pending--;
-        if (pending <= 0) {
-          imgs.forEach(processImage);
-          assignSpans(figures);
-        }
-      }
-
-      imgs.forEach(function (img) {
-        if (img.complete && img.naturalWidth > 0) {
-          onLoad();
-        } else {
-          img.addEventListener('load', onLoad, { once: true });
-          img.addEventListener('error', onLoad, { once: true });
-        }
-      });
-
-      figures.forEach(function (fig) { reveal.observe(fig); });
-    });
-
-    if (digitalSection) sectionObs.observe(digitalSection);
-    if (analogueSection) sectionObs.observe(analogueSection);
-
-    setTimeout(function () {
-      if (modeEl) modeEl.classList.add('visible');
-    }, 800);
-  }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
   }
