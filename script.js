@@ -5,6 +5,7 @@
 
   const DESKTOP_GAP = 14;
   const TABLET_GAP = 12;
+  const MOBILE_GAP = 10;
 
   function getColumns() {
     if (window.innerWidth <= 640) return 1;
@@ -13,7 +14,7 @@
   }
 
   function getGap() {
-    if (window.innerWidth <= 640) return 10;
+    if (window.innerWidth <= 640) return MOBILE_GAP;
     if (window.innerWidth <= 900) return TABLET_GAP;
     return DESKTOP_GAP;
   }
@@ -27,19 +28,40 @@
     return 'square';
   }
 
-  function canUseTwoColumns(type, index, heights, start) {
-    if (type === 'portrait' && index % 6 !== 2) return false;
-    if (type === 'square' && index % 5 !== 1) return false;
-    if (type === 'landscape' && index % 4 !== 1) return false;
-
-    const a = heights[start];
-    const b = heights[start + 1];
-    const spread = Math.abs(a - b);
-    const skyline = Math.max(a, b);
-    return spread < Math.max(180, skyline * 0.28 + 120);
+  function preferredSpan(type, index, columns) {
+    if (columns < 2) return 1;
+    // Irregular editorial rhythm. Wide images are occasional, not systematic.
+    if (type === 'landscape') return [false, true, false, false, true, false, true, false][index % 8] ? 2 : 1;
+    if (type === 'portrait') return [false, false, false, true, false, false, true][index % 7] ? 2 : 1;
+    if (type === 'square') return index % 6 === 4 ? 2 : 1;
+    return 1;
   }
 
-  function layoutGallery(gallery) {
+  function placementCost(candidate, heights, columns, preferred) {
+    const next = heights.slice();
+    const bottom = candidate.top + candidate.height + candidate.gap;
+    for (let c = candidate.start; c < candidate.start + candidate.span; c++) next[c] = bottom;
+
+    const maxAfter = Math.max.apply(null, next);
+    const minAfter = Math.min.apply(null, next);
+    const spreadAfter = maxAfter - minAfter;
+
+    // Primary objective: keep the skyline compact, so no column is left far behind.
+    let cost = maxAfter * 1.0 + spreadAfter * 0.35;
+
+    // Slight preference for the intended span, without forcing it.
+    if (candidate.span !== preferred) cost += candidate.height * 0.10;
+
+    // Prefer filling the currently lowest column/pair.
+    cost += candidate.top * 0.12;
+
+    // Very small deterministic variation for a less mechanical composition.
+    cost += ((candidate.start + 1) * 7) % 5;
+
+    return { cost, next };
+  }
+
+  function placeGallery(gallery) {
     const items = Array.from(gallery.querySelectorAll('.gallery__item'));
     if (!items.length || !gallery.clientWidth) return;
 
@@ -58,27 +80,9 @@
       if (!img || !img.naturalWidth || !img.naturalHeight) return;
 
       const type = getOrientation(img);
-      let wantedSpan = 1;
-
-      if (columns > 1) {
-        for (let start = 0; start <= columns - 2; start++) {
-          if (canUseTwoColumns(type, index, heights, start)) {
-            const twoColHeight = (colWidth * 2 + gap) * (img.naturalHeight / img.naturalWidth);
-            const oneColBest = Math.min.apply(null, heights);
-            const twoColTop = Math.max(heights[start], heights[start + 1]);
-
-            // Only create a wide image when doing so is genuinely competitive
-            // with the shortest available column. This prevents giant blanks.
-            if (twoColTop <= oneColBest + twoColHeight * 0.42) {
-              wantedSpan = 2;
-              break;
-            }
-          }
-        }
-      }
-
-      const candidates = [];
-      const spans = wantedSpan === 2 ? [2, 1] : [1];
+      const preferred = preferredSpan(type, index, columns);
+      const candidateList = [];
+      const spans = columns === 1 ? [1] : (preferred === 2 ? [2, 1] : [1, 2]);
 
       spans.forEach(function (span) {
         if (span > columns) return;
@@ -86,42 +90,49 @@
         const itemHeight = itemWidth * (img.naturalHeight / img.naturalWidth);
 
         for (let start = 0; start <= columns - span; start++) {
-          let y = 0;
-          for (let c = start; c < start + span; c++) y = Math.max(y, heights[c]);
-          candidates.push({ span, start, y, itemWidth, itemHeight });
+          let top = 0;
+          for (let c = start; c < start + span; c++) top = Math.max(top, heights[c]);
+          candidateList.push({
+            span,
+            start,
+            top,
+            width: itemWidth,
+            height: itemHeight,
+            gap
+          });
         }
       });
 
-      candidates.sort(function (a, b) {
-        if (Math.abs(a.y - b.y) > 1) return a.y - b.y;
-        if (a.span !== b.span) return a.span === wantedSpan ? -1 : 1;
-        // Small deterministic variation avoids a repetitive visual cadence.
-        const pa = (index * 7 + a.start * 11) % 17;
-        const pb = (index * 7 + b.start * 11) % 17;
-        return pa - pb;
+      let chosen = null;
+      let best = Infinity;
+
+      candidateList.forEach(function (candidate) {
+        const result = placementCost(candidate, heights, columns, preferred);
+        if (result.cost < best) {
+          best = result.cost;
+          chosen = { candidate, next: result.next };
+        }
       });
 
-      const chosen = candidates[0];
+      if (!chosen) return;
 
+      const c = chosen.candidate;
       item.dataset.orientation = type;
-      item.dataset.span = String(chosen.span);
+      item.dataset.span = String(c.span);
       item.classList.add('is-' + type);
       item.style.position = 'absolute';
-      item.style.width = chosen.itemWidth + 'px';
-      item.style.left = (chosen.start * (colWidth + gap)) + 'px';
-      item.style.top = chosen.y + 'px';
+      item.style.width = c.width + 'px';
+      item.style.left = (c.start * (colWidth + gap)) + 'px';
+      item.style.top = c.top + 'px';
 
-      const bottom = chosen.y + chosen.itemHeight + gap;
-      for (let c = chosen.start; c < chosen.start + chosen.span; c++) {
-        heights[c] = bottom;
-      }
+      for (let col = 0; col < columns; col++) heights[col] = chosen.next[col];
     });
 
     gallery.style.height = Math.max(0, Math.max.apply(null, heights) - gap) + 'px';
   }
 
   function layoutAll() {
-    document.querySelectorAll('.gallery').forEach(layoutGallery);
+    document.querySelectorAll('.gallery').forEach(placeGallery);
   }
 
   const reveal = new IntersectionObserver(function (entries) {
@@ -155,23 +166,14 @@
   function init() {
     document.querySelectorAll('.gallery__item').forEach(function (item) { reveal.observe(item); });
 
-    const images = Array.from(document.querySelectorAll('.gallery img'));
-    let pending = images.length;
-
-    function ready() {
-      pending -= 1;
-      if (pending <= 0) layoutAll();
-    }
-
-    images.forEach(function (img) {
-      if (img.complete && img.naturalWidth > 0) ready();
-      else {
-        img.addEventListener('load', ready, { once: true });
-        img.addEventListener('error', ready, { once: true });
-      }
+    document.querySelectorAll('.gallery img').forEach(function (img) {
+      const relayout = function () {
+        requestAnimationFrame(layoutAll);
+      };
+      if (img.complete && img.naturalWidth) relayout();
+      img.addEventListener('load', relayout, { once: true });
+      img.addEventListener('error', relayout, { once: true });
     });
-
-    if (!images.length) layoutAll();
 
     if (digital) sectionObserver.observe(digital);
     if (analogue) sectionObserver.observe(analogue);
@@ -182,6 +184,8 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(layoutAll, 100);
     }, { passive: true });
+
+    layoutAll();
   }
 
   if (document.readyState === 'loading') {
