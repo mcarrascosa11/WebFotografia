@@ -3,6 +3,7 @@
 html{scroll-behavior:smooth}
 body{font-family:var(--font-ui);font-weight:300;color:var(--text);background:var(--bg-digital);-webkit-font-smoothing:antialiased;transition:background-color .8s ease;overflow-x:hidden}
 body.mode-analogue{background:var(--bg-analogue)}
+body.lightbox-open{overflow:hidden}
 a{color:inherit;text-decoration:none}
 .header{position:fixed;inset:0 auto 0 0;width:var(--rail);padding:15px 12px;z-index:100;pointer-events:none;border-right:1px solid rgba(42,40,37,.07);background:inherit}
 .header__rail{min-height:calc(100vh - 30px);display:flex;flex-direction:column;align-items:flex-start;gap:6px;pointer-events:auto}
@@ -19,9 +20,22 @@ a{color:inherit;text-decoration:none}
 .gallery-mode--analogue{padding-top:90px;padding-bottom:90px}
 .gallery-zone{width:100%;margin:0 auto var(--page-gap)}
 .zone-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:repeat(12,minmax(40px,1fr));gap:var(--zone-gap);aspect-ratio:12/12}
-.zone__item{min-width:0;min-height:0;overflow:hidden;background:rgba(42,40,37,.04);position:relative}
+.zone__item{min-width:0;min-height:0;overflow:hidden;background:rgba(42,40,37,.04);position:relative;cursor:zoom-in}
 .zone__item img{display:block;width:100%;height:100%;object-fit:cover;object-position:center center;transform-origin:center center}
-.gallery-zone:last-child{margin-bottom:0}
-@media(max-width:900px){:root{--rail:118px;--page-gap:12px;--zone-gap:10px}.zone-grid{grid-template-rows:repeat(12,minmax(34px,1fr))}}
-@media(max-width:640px){:root{--rail:92px;--page-gap:10px;--zone-gap:8px}.header{padding:13px 8px}.header__rail{min-height:calc(100vh - 26px)}.header__nav{margin-top:9px;gap:7px}.gallery-mode{margin-left:var(--rail);padding:68px 10px 0 0}.gallery-mode--analogue{padding-top:76px;padding-bottom:60px}.zone-grid{grid-template-rows:repeat(12,minmax(28px,1fr))}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}body{transition:none}}
+
+/* Visor a pantalla completa */
+.lightbox{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(18,18,18,.96);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility .25s ease}
+.lightbox.is-open{opacity:1;visibility:visible;pointer-events:auto}
+.lightbox__frame{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:42px 76px}
+.lightbox__image{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.lightbox__close,.lightbox__prev,.lightbox__next{position:absolute;border:0;background:none;color:#f5f2ed;cursor:pointer;z-index:2;font-family:Georgia,serif;font-weight:300;line-height:1}
+.lightbox__close{top:16px;right:22px;font-size:34px;padding:5px 10px}
+.lightbox__prev,.lightbox__next{top:50%;transform:translateY(-50%);font-size:64px;padding:18px}
+.lightbox__prev{left:8px}
+.lightbox__next{right:8px}
+.lightbox__close:hover,.lightbox__prev:hover,.lightbox__next:hover{opacity:.55}
+.lightbox__counter{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font-size:8px;letter-spacing:.2em;color:rgba(245,242,237,.65);text-transform:uppercase;pointer-events:none}
+
+@media(max-width:900px){:root{--rail:118px;--page-gap:12px;--zone-gap:10px}.zone-grid{grid-template-rows:repeat(12,minmax(34px,1fr))}.lightbox__frame{padding:32px 54px}}
+@media(max-width:640px){:root{--rail:92px;--page-gap:10px;--zone-gap:8px}.header{padding:13px 8px}.header__rail{min-height:calc(100vh - 26px)}.header__nav{margin-top:9px;gap:7px}.gallery-mode{margin-left:var(--rail);padding:68px 10px 0 0}.gallery-mode--analogue{padding-top:76px;padding-bottom:60px}.zone-grid{grid-template-rows:repeat(12,minmax(28px,1fr))}.lightbox__frame{padding:24px 20px}.lightbox__prev,.lightbox__next{font-size:48px;padding:14px 8px}.lightbox__prev{left:0}.lightbox__next{right:0}.lightbox__close{top:10px;right:10px;font-size:30px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}body{transition:none}.lightbox{transition:none}}
