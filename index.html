@@ -20,8 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<script type="application/ld+json">
-{
+<script type="application/ld+json">{
   "@context":"https://schema.org",
   "@type":"Photographer",
   "name":"Marcos Carrascosa",
@@ -32,15 +31,14 @@
   "description":"Fotógrafo de bodas en Zaragoza. Trabajo en digital y analógico.",
   "url":"https://marcoscarrascosa.com/",
   "sameAs":["https://instagram.com/marcoscarrascosa"]
-}
-</script>
+}</script>
 </head>
 <body>
 <header class="header">
   <div class="header__rail">
-    <a href="#" class="header__name">MARCOS CARRASCOSA</a>
+    <a href="#digital" class="header__name">MARCOS CARRASCOSA</a>
     <span class="header__subtitle">FOTOGRAFÍA DE BODAS</span>
-    <nav class="header__nav" aria-label="Navegación de fotografía">
+    <nav class="header__nav" aria-label="Navegación">
       <a href="#digital" class="header__mode-link">DIGITAL</a>
       <a href="#analogica" class="header__mode-link">ANALÓGICA</a>
     </nav>
@@ -52,59 +50,10 @@
     </address>
   </div>
 </header>
-
 <main>
-  <section class="gallery-section gallery-section--digital" id="digital" aria-label="Fotografía digital">
-    <div class="gallery" data-gallery="digital">
-      <figure class="gallery__item"><img src="digital/001.jpg" alt="Fotografía de boda" fetchpriority="high" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/002.jpg" alt="Fotografía de boda" fetchpriority="high" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/003.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/004.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/005.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/006.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/007.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/008.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/009.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/010.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/011.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/012.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/013.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/014.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/015.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/016.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/017.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/018.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/019.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/020.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/021.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/022.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/023.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/024.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/025.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/026.jpg" alt="Fotografía de boda" decoding="async"></figure>
-      <figure class="gallery__item"><img src="digital/027.jpg" alt="Fotografía de boda" decoding="async"></figure>
-    </div>
-  </section>
-
-  <section class="gallery-section gallery-section--analogue" id="analogica" aria-label="Fotografía analógica">
-    <div class="gallery" data-gallery="film">
-      <figure class="gallery__item"><img src="film/001.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/002.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/003.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/004.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/005.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/006.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/007.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/008.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/009.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-      <figure class="gallery__item"><img src="film/010.jpg" alt="Fotografía de boda en analógico" decoding="async"></figure>
-    </div>
-  </section>
+  <section id="digital" class="gallery-mode gallery-mode--digital" aria-label="Fotografía digital"></section>
+  <section id="analogica" class="gallery-mode gallery-mode--analogue" aria-label="Fotografía analógica"></section>
 </main>
-
-
-
-
 <script src="script.js"></script>
 </body>
 </html>
