@@ -38,6 +38,7 @@ img { display: block; width: 100%; height: auto; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  min-height: calc(100vh - 30px);
   gap: 6px;
   pointer-events: auto;
 }
@@ -70,6 +71,33 @@ img { display: block; width: 100%; height: auto; }
   transition: opacity .25s ease;
 }
 .header__mode-link:hover { opacity: .45; }
+
+.header__contact {
+  margin-top: auto;
+  padding-bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  font-style: normal;
+}
+.header__contact-label {
+  margin-bottom: 3px;
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: .22em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.header__contact a {
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: .16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  transition: opacity .25s ease;
+}
+.header__contact a:hover { opacity: .45; }
 
 /* Masonry libre de 3 columnas. El JS solo calcula posiciones; nunca recorta fotografías. */
 .gallery-section {
@@ -146,23 +174,24 @@ img { display: block; width: 100%; height: auto; }
 }
 
 @media (max-width: 640px) {
-  :root { --rail: 0px; --margin-right: 14px; --gap: 10px; }
+  :root { --rail: 92px; --margin-right: 14px; --gap: 10px; }
   .header {
-    width: auto;
-    height: auto;
-    right: 0;
-    padding: 13px 14px;
+    width: var(--rail);
+    height: 100vh;
+    right: auto;
+    padding: 13px 8px;
   }
   .header__rail {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    min-height: calc(100vh - 26px);
   }
   .header__nav { margin-top: 9px; gap: 7px; }
-  .gallery-section { margin-left: 0; padding-left: 14px; padding-right: 14px; }
+  .gallery-section { margin-left: var(--rail); padding-left: 0; padding-right: 14px; }
   .gallery-section--digital { padding-top: 76px; }
   .gallery-section--analogue { padding-top: 66px; padding-bottom: 70px; }
-  .contact, .footer { margin-left: 0; }
+  .contact, .footer { margin-left: var(--rail); }
   .contact { padding: 70px 14px 46px; }
   .contact__title { font-size: 20vw; }
   .footer { padding: 18px 14px 24px; flex-direction: column; align-items: flex-start; gap: 7px; }
