@@ -5,134 +5,110 @@
 
   const DESKTOP_GAP = 14;
   const TABLET_GAP = 12;
-  const MOBILE_GAP = 10;
 
-  function getColumns() {
+  function columns() {
     if (window.innerWidth <= 640) return 1;
     if (window.innerWidth <= 900) return 2;
     return 3;
   }
 
-  function getGap() {
-    if (window.innerWidth <= 640) return MOBILE_GAP;
+  function gap() {
+    if (window.innerWidth <= 640) return 10;
     if (window.innerWidth <= 900) return TABLET_GAP;
     return DESKTOP_GAP;
   }
 
-  function getOrientation(img) {
-    const w = img.naturalWidth || 1;
-    const h = img.naturalHeight || 1;
-    const ratio = w / h;
-    if (ratio > 1.05) return 'landscape';
-    if (ratio < 0.95) return 'portrait';
+  function typeOf(img) {
+    const r = img.naturalWidth / img.naturalHeight;
+    if (r > 1.05) return 'landscape';
+    if (r < 0.95) return 'portrait';
     return 'square';
   }
 
-  function preferredSpan(type, index, columns) {
-    if (columns < 2) return 1;
-    // Irregular editorial rhythm. Wide images are occasional, not systematic.
-    if (type === 'landscape') return [false, true, false, false, true, false, true, false][index % 8] ? 2 : 1;
-    if (type === 'portrait') return [false, false, false, true, false, false, true][index % 7] ? 2 : 1;
-    if (type === 'square') return index % 6 === 4 ? 2 : 1;
+  function preferredSpan(type, index, count) {
+    if (count < 2) return 1;
+    // Wide images are occasional. Portraits can also become a deliberate
+    // two-column statement, but only when the masonry algorithm can do it
+    // without leaving a vertical hole.
+    if (index % 7 === 2) return 2;
+    if (type === 'landscape' && index % 5 === 1) return 2;
+    if (type === 'portrait' && index % 9 === 6) return 2;
     return 1;
   }
 
-  function placementCost(candidate, heights, columns, preferred) {
-    const next = heights.slice();
-    const bottom = candidate.top + candidate.height + candidate.gap;
-    for (let c = candidate.start; c < candidate.start + candidate.span; c++) next[c] = bottom;
-
-    const maxAfter = Math.max.apply(null, next);
-    const minAfter = Math.min.apply(null, next);
-    const spreadAfter = maxAfter - minAfter;
-
-    // Primary objective: keep the skyline compact, so no column is left far behind.
-    let cost = maxAfter * 1.0 + spreadAfter * 0.35;
-
-    // Slight preference for the intended span, without forcing it.
-    if (candidate.span !== preferred) cost += candidate.height * 0.10;
-
-    // Prefer filling the currently lowest column/pair.
-    cost += candidate.top * 0.12;
-
-    // Very small deterministic variation for a less mechanical composition.
-    cost += ((candidate.start + 1) * 7) % 5;
-
-    return { cost, next };
-  }
-
-  function placeGallery(gallery) {
+  function layout(gallery) {
     const items = Array.from(gallery.querySelectorAll('.gallery__item'));
-    if (!items.length || !gallery.clientWidth) return;
-
-    const columns = getColumns();
-    const gap = getGap();
+    const count = columns();
+    const g = gap();
     const width = gallery.clientWidth;
-    const colWidth = (width - gap * (columns - 1)) / columns;
-    const heights = new Array(columns).fill(0);
+    if (!width || !items.length) return;
+
+    const colWidth = (width - g * (count - 1)) / count;
+    const heights = new Array(count).fill(0);
 
     gallery.style.position = 'relative';
-    gallery.style.display = 'block';
     gallery.style.height = '0px';
 
     items.forEach(function (item, index) {
       const img = item.querySelector('img');
       if (!img || !img.naturalWidth || !img.naturalHeight) return;
 
-      const type = getOrientation(img);
-      const preferred = preferredSpan(type, index, columns);
-      const candidateList = [];
-      const spans = columns === 1 ? [1] : (preferred === 2 ? [2, 1] : [1, 2]);
+      const type = typeOf(img);
+      const wanted = preferredSpan(type, index, count);
+      const candidates = [];
 
-      spans.forEach(function (span) {
-        if (span > columns) return;
-        const itemWidth = colWidth * span + gap * (span - 1);
-        const itemHeight = itemWidth * (img.naturalHeight / img.naturalWidth);
-
-        for (let start = 0; start <= columns - span; start++) {
-          let top = 0;
-          for (let c = start; c < start + span; c++) top = Math.max(top, heights[c]);
-          candidateList.push({
-            span,
-            start,
-            top,
-            width: itemWidth,
-            height: itemHeight,
-            gap
-          });
+      // First try a two-column composition only where the two columns have
+      // virtually the same skyline. This is the key to avoiding blank holes.
+      if (wanted === 2) {
+        for (let start = 0; start <= count - 2; start++) {
+          const h0 = heights[start];
+          const h1 = heights[start + 1];
+          const spread = Math.abs(h0 - h1);
+          if (spread > g * 2) continue;
+          const w = colWidth * 2 + g;
+          const h = w * img.naturalHeight / img.naturalWidth;
+          candidates.push({ span: 2, start, top: Math.max(h0, h1), width: w, height: h });
         }
+      }
+
+      // One-column placement always goes into the shortest column. This is
+      // true masonry: the next photograph fills the lowest available space.
+      for (let start = 0; start < count; start++) {
+        candidates.push({
+          span: 1,
+          start,
+          top: heights[start],
+          width: colWidth,
+          height: colWidth * img.naturalHeight / img.naturalWidth
+        });
+      }
+
+      candidates.sort(function (a, b) {
+        if (Math.abs(a.top - b.top) > 1) return a.top - b.top;
+        if (a.span !== b.span) return a.span === wanted ? -1 : 1;
+        return a.start - b.start;
       });
 
-      let chosen = null;
-      let best = Infinity;
-
-      candidateList.forEach(function (candidate) {
-        const result = placementCost(candidate, heights, columns, preferred);
-        if (result.cost < best) {
-          best = result.cost;
-          chosen = { candidate, next: result.next };
-        }
-      });
-
-      if (!chosen) return;
-
-      const c = chosen.candidate;
+      const chosen = candidates[0];
       item.dataset.orientation = type;
-      item.dataset.span = String(c.span);
+      item.dataset.span = String(chosen.span);
       item.classList.add('is-' + type);
       item.style.position = 'absolute';
-      item.style.width = c.width + 'px';
-      item.style.left = (c.start * (colWidth + gap)) + 'px';
-      item.style.top = c.top + 'px';
+      item.style.width = chosen.width + 'px';
+      item.style.left = (chosen.start * (colWidth + g)) + 'px';
+      item.style.top = chosen.top + 'px';
 
-      for (let col = 0; col < columns; col++) heights[col] = chosen.next[col];
+      const bottom = chosen.top + chosen.height + g;
+      for (let c = chosen.start; c < chosen.start + chosen.span; c++) {
+        heights[c] = bottom;
+      }
     });
 
-    gallery.style.height = Math.max(0, Math.max.apply(null, heights) - gap) + 'px';
+    gallery.style.height = Math.max(0, Math.max.apply(null, heights) - g) + 'px';
   }
 
   function layoutAll() {
-    document.querySelectorAll('.gallery').forEach(placeGallery);
+    document.querySelectorAll('.gallery').forEach(layout);
   }
 
   const reveal = new IntersectionObserver(function (entries) {
@@ -166,13 +142,12 @@
   function init() {
     document.querySelectorAll('.gallery__item').forEach(function (item) { reveal.observe(item); });
 
+    // Never wait for lazy images outside the viewport. Reflow after each image
+    // becomes available, so the visible gallery is always laid out.
     document.querySelectorAll('.gallery img').forEach(function (img) {
-      const relayout = function () {
-        requestAnimationFrame(layoutAll);
-      };
-      if (img.complete && img.naturalWidth) relayout();
-      img.addEventListener('load', relayout, { once: true });
-      img.addEventListener('error', relayout, { once: true });
+      const redraw = function () { layout(img.closest('.gallery')); };
+      if (img.complete && img.naturalWidth) redraw();
+      else img.addEventListener('load', redraw, { once: true });
     });
 
     if (digital) sectionObserver.observe(digital);
