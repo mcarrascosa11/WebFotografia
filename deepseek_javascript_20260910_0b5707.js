@@ -1,89 +1,100 @@
-(function () {
+(function(){
   'use strict';
-  document.documentElement.classList.remove('no-js');
+  const root=document.documentElement;
+  root.classList.remove('no-js');
 
-  // Detecta orientación REAL (no por nombre de archivo)
-  function detectOrientation(img) {
-    const w = img.naturalWidth, h = img.naturalHeight;
-    if (!w || !h) return 'square';
-    const r = w / h;
-    if (r > 1.05) return 'landscape';
-    if (r < 0.95) return 'portrait';
+  function orientation(img){
+    const w=img.naturalWidth;
+    const h=img.naturalHeight;
+    if(!w||!h)return 'square';
+    const r=w/h;
+    if(r>1.08)return 'landscape';
+    if(r<0.92)return 'portrait';
     return 'square';
   }
 
-  function processImage(img) {
-    const fig = img.closest('.gallery__item');
-    if (!fig) return;
-    const o = detectOrientation(img);
-    fig.classList.add('is-' + o);
+  function classifyAll(gallery){
+    const items=[...gallery.querySelectorAll('.gallery__item')];
+    const ready=items.filter(fig=>{
+      const img=fig.querySelector('img');
+      return img && img.complete && img.naturalWidth>0;
+    });
+    if(ready.length<items.length)return;
 
-    // Regla editorial: las horizontales alternan 1 y 2 columnas.
-    // Verticales y cuadradas → 1 columna.
-    // Ocasionalmente una vertical puede ir a 2 columnas (1 de cada 5).
-    if (!fig.dataset.span) {
-      if (o === 'landscape') {
-        const idx = Array.from(fig.parentNode.children).indexOf(fig);
-        fig.dataset.span = (idx % 2 === 0) ? '2' : '1';
-      } else if (o === 'portrait') {
-        const idx = Array.from(fig.parentNode.children).indexOf(fig);
-        fig.dataset.span = (idx > 0 && idx % 5 === 0) ? '2' : '1';
-      } else {
-        fig.dataset.span = '1';
-      }
+    items.forEach(fig=>{
+      const img=fig.querySelector('img');
+      const o=orientation(img);
+      fig.classList.remove('is-landscape','is-portrait','is-square');
+      fig.classList.add('is-'+o);
+    });
+
+    // La composición se construye por parejas que completan exactamente 3 columnas.
+    // Una pareja siempre suma 3 columnas: 1+2. Se conserva el orden original.
+    for(let i=0;i<items.length;i+=2){
+      const a=items[i], b=items[i+1];
+      if(!a)continue;
+      a.dataset.span='1';
+      if(!b)continue;
+      b.dataset.span='2';
+
+      const ao=a.classList.contains('is-landscape');
+      const bo=b.classList.contains('is-landscape');
+      const ap=a.classList.contains('is-portrait');
+      const bp=b.classList.contains('is-portrait');
+
+      // Si hay una horizontal y una vertical, la horizontal ocupa 2 y la vertical 1.
+      if(ao&&!bo){a.dataset.span='2';b.dataset.span='1';}
+      else if(!ao&&bo){a.dataset.span='1';b.dataset.span='2';}
+      // En parejas homogéneas alternamos 1/2 para mantener ritmo.
+      else if(i%4!==0){a.dataset.span='2';b.dataset.span='1';}
+      // Cuadradas se quedan siempre en 1 columna cuando sea posible.
+      if(a.classList.contains('is-square')&&b.dataset.span==='1'){a.dataset.span='1';b.dataset.span='2';}
+      if(b.classList.contains('is-square')&&a.dataset.span==='2'){a.dataset.span='2';b.dataset.span='1';}
+
+      // En una pareja vertical+vertical permitimos ocasionalmente una vertical a 2 columnas.
+      if(ap&&bp&&i%6===0){a.dataset.span='2';b.dataset.span='1';}
     }
   }
 
-  // Animación sutil al entrar en viewport
-  const reveal = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (e.isIntersecting) {
-        e.target.classList.add('revealed');
-        reveal.unobserve(e.target);
-      }
+  function setupGallery(gallery){
+    const images=[...gallery.querySelectorAll('img')];
+    const ready=()=>classifyAll(gallery);
+    images.forEach(img=>{
+      if(img.complete&&img.naturalWidth>0)img.decode?.().catch(()=>{}).finally(ready);
+      else img.addEventListener('load',ready,{once:true});
     });
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.01 });
-
-  // Cambio de modo DIGITAL / ANALÓGICA
-  const modeEl = document.getElementById('modeIndicator');
-  const digital = document.getElementById('digital');
-  const analogue = document.getElementById('analogica');
-  let mode = 'digital';
-
-  function setMode(m) {
-    if (m === mode) return;
-    mode = m;
-    if (m === 'analogue') {
-      document.body.classList.add('mode-analogue');
-      if (modeEl) modeEl.textContent = 'ANALÓGICA';
-    } else {
-      document.body.classList.remove('mode-analogue');
-      if (modeEl) modeEl.textContent = 'DIGITAL';
-    }
+    // Fallback para caché y lazy-load.
+    window.addEventListener('load',ready,{once:true});
+    setTimeout(ready,1200);
   }
 
-  const sectionObs = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (e.isIntersecting) {
-        if (e.target.id === 'analogica') setMode('analogue');
-        else if (e.target.id === 'digital') setMode('digital');
-      }
-    });
-  }, { rootMargin: '-30% 0px -30% 0px', threshold: 0 });
+  document.querySelectorAll('.gallery').forEach(setupGallery);
 
-  function init() {
-    document.querySelectorAll('.gallery__item img').forEach((img) => {
-      if (img.complete && img.naturalWidth > 0) processImage(img);
-      else img.addEventListener('load', () => processImage(img), { once: true });
-      const fig = img.closest('.gallery__item');
-      if (fig) reveal.observe(fig);
-    });
-    if (digital) sectionObs.observe(digital);
-    if (analogue) sectionObs.observe(analogue);
-    setTimeout(() => modeEl && modeEl.classList.add('visible'), 800);
+  // Revelado suave. La imagen nunca queda oculta si JS falla.
+  const reveal=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    if(entry.isIntersecting){entry.target.classList.add('revealed');reveal.unobserve(entry.target);}
+  }),{rootMargin:'0px 0px -6% 0px',threshold:.02});
+  document.querySelectorAll('.gallery__item').forEach(item=>reveal.observe(item));
+
+  // Cambio automático de fondo y etiqueta entre DIGITAL y ANALÓGICA.
+  const modeEl=document.getElementById('modeIndicator');
+  const digital=document.getElementById('digital');
+  const analogue=document.getElementById('analogica');
+
+  function setMode(name){
+    const analogueMode=name==='analogue';
+    document.body.classList.toggle('mode-analogue',analogueMode);
+    if(modeEl)modeEl.textContent=analogueMode?'ANALÓGICA':'DIGITAL';
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else init();
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting)setMode(entry.target.id==='analogica'?'analogue':'digital');
+    });
+  },{rootMargin:'-40% 0px -40% 0px',threshold:0});
+
+  if(digital)observer.observe(digital);
+  if(analogue)observer.observe(analogue);
+  setMode('digital');
+  setTimeout(()=>modeEl?.classList.add('visible'),300);
 })();
