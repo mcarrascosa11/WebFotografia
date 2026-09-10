@@ -7,7 +7,7 @@
 <title>Editor · Marcos Carrascosa</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#ece8e1;color:#252320}button,input{font:inherit}button{cursor:pointer}
-.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px;border-right:1px solid #d2ccc2;background:#f5f2ed;position:sticky;top:0;height:100vh;overflow:auto}.brand{font-size:11px;letter-spacing:.18em;font-weight:700}.muted{color:#777168;font-size:11px;line-height:1.45}.section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:24px 0 10px}.tools{display:grid;gap:7px}.tools button,.template{border:1px solid #cbc4ba;background:#fbfaf7;padding:9px 10px;text-align:left;font-size:11px}.tools button:hover,.template:hover{background:#eeeae3}.template.active{border-color:#252320;background:#e6e0d6}.divider{height:1px;background:#d8d2c9;margin:16px 0}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.photo-thumb{aspect-ratio:1/1;border:1px solid #d2cbc2;background:#ddd7cf;overflow:hidden;position:relative;cursor:grab}.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}.photo-thumb.used{opacity:.35}.photo-thumb span{position:absolute;left:4px;bottom:3px;background:rgba(255,255,255,.78);font-size:8px;padding:2px 3px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.primary{background:#252320!important;color:#fff!important;border-color:#252320!important}.danger{background:#eee4e0!important}
+.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px;border-right:1px solid #d2ccc2;background:#f5f2ed;position:sticky;top:0;height:100vh;overflow:auto}.brand{font-size:11px;letter-spacing:.18em;font-weight:700}.muted{color:#777168;font-size:11px;line-height:1.45}.section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:24px 0 10px}.tools{display:grid;gap:7px}.tools button,.template{border:1px solid #cbc4ba;background:#fbfaf7;padding:9px 10px;text-align:left;font-size:11px}.tools button:hover,.template:hover{background:#eeeae3}.template.active{border-color:#252320;background:#e6e0d6}.divider{height:1px;background:#d8d2c9;margin:16px 0}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.photo-thumb{aspect-ratio:1/1;border:1px solid #d2cbc2;background:#ddd7cf;overflow:hidden;position:relative;cursor:grab}.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}.photo-thumb.used{opacity:.35}.photo-thumb span{position:absolute;left:4px;bottom:3px;background:rgba(255,255,255,.78);font-size:8px;padding:2px 3px}.orientation{position:absolute;right:4px;top:4px;min-width:17px;height:17px;border-radius:50%;display:grid;place-items:center;background:rgba(245,242,237,.9);font-size:8px;font-weight:700;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.08)}.orientation.h{background:#252320;color:#fff}.orientation.v{border:1px solid #252320}.orientation.s{border:1px solid #8f887e;color:#5d574f}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.primary{background:#252320!important;color:#fff!important;border-color:#252320!important}.danger{background:#eee4e0!important}
 main{padding:20px 26px 70px;min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:16px}.topbar h1{font:400 32px/1 Georgia,serif;margin:0}.status{font-size:10px;color:#766f66}.stage-wrap{background:#ded8cf;padding:18px;overflow:auto}.stage{width:min(1500px,100%);margin:0 auto;background:#f5f2ed;padding:12px;min-height:820px}.canvas{position:relative;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(12,minmax(42px,1fr));gap:12px;min-height:780px}.slot{position:relative;min-width:0;min-height:0;background:#d4cec5;border:1px dashed #9f978c;overflow:hidden}.slot.selected{outline:2px solid #252320;outline-offset:2px}.slot.empty::after{content:'ARRASTRA UNA FOTO';position:absolute;inset:0;display:grid;place-items:center;font-size:9px;letter-spacing:.15em;color:#817a71}.slot img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;pointer-events:none}.slot-label{position:absolute;left:6px;top:5px;background:rgba(245,242,237,.82);padding:3px 4px;font-size:8px;z-index:2}.templates{display:grid;gap:6px}.template small{display:block;color:#776f66;margin-top:4px;font-size:9px}.control-row{display:grid;grid-template-columns:75px 1fr;gap:8px;align-items:center;margin:7px 0}.control-row label{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#70695f}.control-row input{width:100%}.selected-info{font-size:10px;line-height:1.45;color:#716a61;min-height:30px}.hint{font-size:9px;color:#817a71;line-height:1.45}.mobile-note{display:none}
 @media(max-width:900px){.app{grid-template-columns:250px 1fr}.stage{min-width:760px}.mobile-note{display:block}.topbar h1{font-size:25px}}
 </style>
@@ -31,7 +31,7 @@ main{padding:20px 26px 70px;min-width:0}.topbar{display:flex;align-items:center;
   <div class="control-row"><label>Zoom</label><input id="zoom" type="range" min="1" max="2.8" step="0.01" value="1"></div>
   <div class="control-row"><label>Pos X</label><input id="posX" type="range" min="0" max="100" step="1" value="50"></div>
   <div class="control-row"><label>Pos Y</label><input id="posY" type="range" min="0" max="100" step="1" value="50"></div>
-  <div class="hint">También puedes arrastrar la imagen directamente dentro del módulo para ajustar el encuadre.</div>
+  <div class="hint">V = vertical · H = horizontal · S = cuadrada. También puedes arrastrar la imagen directamente dentro del módulo para ajustar el encuadre.</div>
 
   <div class="divider"></div>
   <div class="section-title">Fotos</div>
@@ -74,12 +74,11 @@ const templates={
  d:[['s1',1,1,5,5],['s2',7,1,6,4],['s3',1,7,4,6],['s4',6,6,7,6]]
 };
 let state={template:'a',slots:{},selected:null};
-let draggingPhoto=null,dragOffset={x:0,y:0};
+let draggingPhoto=null;
 const canvas=document.getElementById('canvas'), photosEl=document.getElementById('photos'), selectedInfo=document.getElementById('selectedInfo'), statusEl=document.getElementById('status');
 const zoomEl=document.getElementById('zoom'), xEl=document.getElementById('posX'), yEl=document.getElementById('posY');
 
 function setStatus(t){statusEl.textContent=t}
-function getSlotDef(id){return templates[state.template].find(s=>s[0]===id)}
 function renderCanvas(){
   canvas.innerHTML='';
   templates[state.template].forEach(def=>{
@@ -105,6 +104,11 @@ function renderCanvas(){
   });
   renderPhotos();
 }
+function orientationOf(img){
+  if(!img.naturalWidth||!img.naturalHeight)return 's';
+  const r=img.naturalWidth/img.naturalHeight;
+  return r>1.05?'h':r<0.95?'v':'s';
+}
 function renderPhotos(){
   photosEl.innerHTML='';
   PHOTOS.forEach(src=>{
@@ -112,6 +116,12 @@ function renderPhotos(){
     const used=Object.values(state.slots).some(s=>s.src===src); if(used)b.classList.add('used');
     b.draggable=true; b.dataset.src=src;
     const img=document.createElement('img'); img.src=src; img.loading='lazy'; b.appendChild(img);
+    img.addEventListener('load',()=>{
+      const kind=orientationOf(img);
+      badge.className=`orientation ${kind}`;
+      badge.textContent=kind==='h'?'H':kind==='v'?'V':'S';
+    });
+    const badge=document.createElement('div'); badge.className='orientation s'; badge.textContent='…'; b.appendChild(badge);
     const n=document.createElement('span');n.textContent=src.split('/').pop();b.appendChild(n);
     b.addEventListener('dragstart',()=>draggingPhoto=src);
     b.addEventListener('dragend',()=>draggingPhoto=null);
@@ -121,8 +131,8 @@ function renderPhotos(){
 }
 function selectSlot(id){state.selected=id;updateControls();renderCanvas()}
 function assignPhoto(slotId,src){
-  state.slots[slotId]={src,zoom:1,x:50,y:50};state.selected=slotId;setStatus('Cambios sin guardar');updateControls();renderCanvas()}
-function removeSelected(){if(state.selected&&state.slots[state.selected]){delete state.slots[state.selected];setStatus('Cambios sin guardar');updateControls();renderCanvas()}}
+  state.slots[slotId]={src,zoom:1,x:50,y:50};state.selected=slotId;setStatus('Cambios sin guardar');updateControls();renderCanvas()
+}
 function updateControls(){
   const data=state.selected?state.slots[state.selected]:null;
   if(!data){selectedInfo.textContent='Selecciona un módulo o arrastra una foto.';zoomEl.value=1;xEl.value=50;yEl.value=50;return}
