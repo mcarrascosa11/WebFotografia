@@ -8,6 +8,7 @@ on:
       - 'digital/**/*.jpeg'
       - 'film/**/*.jpg'
       - 'film/**/*.jpeg'
+      - 'index.html'
       - '.rename-photos'
   workflow_dispatch:
 
@@ -29,8 +30,7 @@ jobs:
           from pathlib import Path
           from PIL import Image, ImageOps
 
-          roots = [Path('digital'), Path('film')]
-          for root in roots:
+          for root in (Path('digital'), Path('film')):
               if not root.exists():
                   continue
               for p in root.rglob('*'):
@@ -41,12 +41,10 @@ jobs:
                           im = ImageOps.exif_transpose(im)
                           if im.mode not in ('RGB', 'L'):
                               im = im.convert('RGB')
-                          max_width = 2400
-                          if im.width > max_width:
-                              h = round(im.height * max_width / im.width)
-                              im = im.resize((max_width, h), Image.Resampling.LANCZOS)
+                          if im.width > 2400:
+                              h = round(im.height * 2400 / im.width)
+                              im = im.resize((2400, h), Image.Resampling.LANCZOS)
                           im.save(p, 'JPEG', quality=84, optimize=True, progressive=True)
-                          print(f'Optimizada: {p}')
                   except Exception as exc:
                       print(f'ERROR {p}: {exc}')
           PY
@@ -73,22 +71,21 @@ jobs:
                       ordered.append(fs_name)
 
               root = Path(medium)
-              mapping = {}
+              if not ordered:
+                  continue
+
               for i, old in enumerate(ordered, start=1):
                   src = root / old
                   if not src.exists():
                       raise FileNotFoundError(f'No existe {src}')
-                  mapping[old] = f'{i:03d}.jpg'
-
-              for i, old in enumerate(ordered, start=1):
-                  (root / old).rename(root / f'.__rename_{i:03d}.tmp')
+                  src.rename(root / f'.__rename_{i:03d}.tmp')
 
               for i in range(1, len(ordered) + 1):
                   (root / f'.__rename_{i:03d}.tmp').rename(root / f'{i:03d}.jpg')
 
-              for old, new in mapping.items():
-                  html_old = next(hn for k, hn in matches if k == medium and unescape(hn) == old)
-                  html = html.replace(f'src="{medium}/{html_old}"', f'src="{medium}/{new}"')
+              for i, old in enumerate(ordered, start=1):
+                  html_name = next(hn for k, hn in matches if k == medium and unescape(hn) == old)
+                  html = html.replace(f'src="{medium}/{html_name}"', f'src="{medium}/{i:03d}.jpg"')
 
           index.write_text(html, encoding='utf-8')
           Path('.rename-photos').unlink(missing_ok=True)
@@ -102,10 +99,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Sin cambios'
           else
-            if git diff --cached --name-status | grep -q '^R'; then
-              git commit -m 'Renombrar fotografías del portfolio'
-            else
-              git commit -m 'Preparar fotografías para web'
-            fi
+            git commit -m 'Renombrar fotografías del portfolio'
             git push
           fi
