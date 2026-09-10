@@ -3,149 +3,163 @@
 
   document.documentElement.classList.add('js-ready');
 
+  const DESKTOP_GAP = 14;
+  const MOBILE_GAP = 10;
+
   /*
-   * MOSAICO EDITORIAL
-   * -----------------
-   * La galería vuelve a una retícula de 3 columnas en escritorio, pero ya no
-   * se fuerza a filas perfectamente alineadas. Cada fotografía conserva su
-   * proporción real y puede ocupar 1 o 2 columnas. El algoritmo busca siempre
-   * la posición con menor altura final para aprovechar el espacio y mantener
-   * una composición irregular pero controlada.
-   *
-   * Importante: no se maqueta nada hasta que TODAS las imágenes estén cargadas.
-   * Así nunca se ve la pila inicial de fotos unas encima de otras.
+   * MOSAICO EDITORIAL MODULAR
+   * -------------------------
+   * La retícula manda y las fotografías se adaptan a ella.
+   * No hay posiciones absolutas ni masonry: cada bloque es una composición
+   * cerrada de CSS Grid, de modo que no aparecen huecos verticales.
    */
 
-  function columns() {
-    if (window.innerWidth <= 640) return 2;
-    if (window.innerWidth <= 900) return 2;
-    return 3;
+  const templatesDesktop = [
+    // 5 fotos: horizontal protagonista + cuatro apoyos.
+    [
+      { c: 1, r: 1, cs: 2, rs: 1 },
+      { c: 3, r: 1, cs: 1, rs: 1 },
+      { c: 1, r: 2, cs: 1, rs: 1 },
+      { c: 2, r: 2, cs: 1, rs: 1 },
+      { c: 3, r: 2, cs: 1, rs: 1 }
+    ],
+    // 5 fotos: vertical protagonista + cuatro apoyos.
+    [
+      { c: 1, r: 1, cs: 1, rs: 2 },
+      { c: 2, r: 1, cs: 1, rs: 1 },
+      { c: 3, r: 1, cs: 1, rs: 1 },
+      { c: 2, r: 2, cs: 1, rs: 1 },
+      { c: 3, r: 2, cs: 1, rs: 1 }
+    ],
+    // 6 fotos: dos piezas de dos columnas + dos pequeñas abajo.
+    [
+      { c: 1, r: 1, cs: 1, rs: 1 },
+      { c: 2, r: 1, cs: 2, rs: 1 },
+      { c: 1, r: 2, cs: 2, rs: 1 },
+      { c: 3, r: 2, cs: 1, rs: 1 },
+      { c: 1, r: 3, cs: 1, rs: 1 },
+      { c: 2, r: 3, cs: 2, rs: 1 }
+    ],
+    // 5 fotos: composición desplazada.
+    [
+      { c: 1, r: 1, cs: 1, rs: 1 },
+      { c: 2, r: 1, cs: 2, rs: 1 },
+      { c: 1, r: 2, cs: 2, rs: 1 },
+      { c: 3, r: 2, cs: 1, rs: 1 },
+      { c: 1, r: 3, cs: 3, rs: 1 }
+    ],
+    // 5 fotos: gran horizontal abajo.
+    [
+      { c: 1, r: 1, cs: 1, rs: 1 },
+      { c: 2, r: 1, cs: 1, rs: 1 },
+      { c: 3, r: 1, cs: 1, rs: 1 },
+      { c: 1, r: 2, cs: 1, rs: 1 },
+      { c: 2, r: 2, cs: 2, rs: 1 }
+    ]
+  ];
+
+  const blockCounts = [5, 5, 6, 5, 6]; // 27 digitales
+
+  function isMobile() {
+    return window.innerWidth <= 640;
   }
 
   function gap() {
-    if (window.innerWidth <= 640) return 10;
-    if (window.innerWidth <= 900) return 12;
-    return 14;
+    return isMobile() ? MOBILE_GAP : DESKTOP_GAP;
   }
 
-  function aspect(img) {
-    return img.naturalWidth / img.naturalHeight;
+  function getTemplate(index, count) {
+    if (isMobile()) return null;
+    return templatesDesktop[index % templatesDesktop.length].slice(0, count);
   }
 
-  function preferredSpan(type, index, count) {
-    if (count < 2) return 1;
-
-    // Alternancia deliberada: algunos horizontales se convierten en piezas
-    // protagonistas de dos columnas; las verticales mantienen normalmente
-    // una columna para conservar variedad de ritmo.
-    if (type === 'landscape' && index % 6 === 1) return 2;
-    if (type === 'landscape' && index % 9 === 5) return 2;
-    if (type === 'portrait' && index % 13 === 8) return 2;
-    return 1;
-  }
-
-  function candidatesFor(span, start, heights, colWidth, g, img) {
-    const count = heights.length;
-    const candidates = [];
-
-    for (let c = 0; c <= count - span; c++) {
-      const top = Math.max.apply(null, heights.slice(c, c + span));
-      const spread = Math.max.apply(null, heights.slice(c, c + span)) -
-        Math.min.apply(null, heights.slice(c, c + span));
-      const width = colWidth * span + g * (span - 1);
-      const height = width / aspect(img);
-
-      // Un span de 2 columnas solo entra cuando no crea un salto enorme sobre
-      // la columna vecina. El umbral permite dinamismo sin grandes huecos.
-      if (span === 2 && spread > Math.max(70, g * 5)) continue;
-
-      const next = heights.slice();
-      const bottom = top + height + g;
-      for (let i = c; i < c + span; i++) next[i] = bottom;
-
-      candidates.push({
-        span,
-        start: c,
-        top,
-        width,
-        height,
-        maxAfter: Math.max.apply(null, next),
-        spreadAfter: Math.max.apply(null, next) - Math.min.apply(null, next)
-      });
-    }
-
-    return candidates;
-  }
-
-  function layout(gallery) {
+  function clearBlocks(gallery) {
     const items = Array.from(gallery.querySelectorAll('.gallery__item'));
-    const count = columns();
-    const g = gap();
-    const width = gallery.clientWidth;
-    if (!width || !items.length) return false;
+    items.forEach(function (item) {
+      item.removeAttribute('style');
+      item.removeAttribute('data-block');
+      item.removeAttribute('data-orientation');
+      item.classList.remove('gallery__block-item');
+    });
+    gallery.querySelectorAll('.gallery__block').forEach(function (block) {
+      block.replaceWith(...Array.from(block.children));
+    });
+    return items;
+  }
 
-    const colWidth = (width - g * (count - 1)) / count;
-    const heights = new Array(count).fill(0);
+  function makeBlocks(gallery) {
+    const items = clearBlocks(gallery);
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    let blockIndex = 0;
 
-    gallery.style.position = 'relative';
-    gallery.style.height = '0px';
-
-    for (let index = 0; index < items.length; index++) {
-      const item = items[index];
-      const img = item.querySelector('img');
-
-      if (!img || !img.naturalWidth || !img.naturalHeight) {
-        return false;
-      }
-
-      const type = aspect(img) > 1.05 ? 'landscape' : aspect(img) < 0.95 ? 'portrait' : 'square';
-      const wanted = preferredSpan(type, index, count);
-      const options = [];
-
-      // Primero valoramos el span buscado y después siempre dejamos disponible
-      // el de una columna como alternativa de emergencia.
-      if (wanted === 2) options.push(...candidatesFor(2, index, heights, colWidth, g, img));
-      options.push(...candidatesFor(1, index, heights, colWidth, g, img));
-
-      if (!options.length) return false;
-
-      options.sort(function (a, b) {
-        // Preferimos que la foto termine en la menor altura global posible.
-        if (Math.abs(a.maxAfter - b.maxAfter) > 1) return a.maxAfter - b.maxAfter;
-
-        // A igualdad, preferimos el span buscado para mantener el ritmo.
-        if (a.span !== b.span) return a.span === wanted ? -1 : 1;
-
-        // Y después, la opción que deje más equilibradas las columnas.
-        if (Math.abs(a.spreadAfter - b.spreadAfter) > 1) return a.spreadAfter - b.spreadAfter;
-        return a.start - b.start;
+    if (isMobile()) {
+      // En móvil: 2 columnas, ritmo sencillo y sin huecos. El último elemento
+      // de una pareja impar ocupa toda la fila.
+      const block = document.createElement('div');
+      block.className = 'gallery__block gallery__block--mobile';
+      items.forEach(function (item, index) {
+        const img = item.querySelector('img');
+        const ratio = img.naturalWidth / img.naturalHeight;
+        item.classList.add('gallery__block-item');
+        item.dataset.orientation = ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square';
+        if (index === items.length - 1 && items.length % 2 === 1) {
+          item.style.gridColumn = '1 / -1';
+        }
+        block.appendChild(item);
       });
-
-      const chosen = options[0];
-      item.dataset.orientation = type;
-      item.dataset.span = String(chosen.span);
-      item.style.position = 'absolute';
-      item.style.left = (chosen.start * (colWidth + g)) + 'px';
-      item.style.top = chosen.top + 'px';
-      item.style.width = chosen.width + 'px';
-      item.style.height = 'auto';
-
-      const bottom = chosen.top + chosen.height + g;
-      for (let c = chosen.start; c < chosen.start + chosen.span; c++) {
-        heights[c] = bottom;
-      }
+      fragment.appendChild(block);
+      gallery.appendChild(fragment);
+      return;
     }
 
-    gallery.style.height = Math.max(0, Math.max.apply(null, heights) - g) + 'px';
-    return true;
+    while (cursor < items.length) {
+      let count = blockCounts[blockIndex % blockCounts.length];
+      count = Math.min(count, items.length - cursor);
+
+      // El bloque final se completa con una plantilla válida siempre que sea
+      // posible. Para 1–2 fotografías usamos una composición de ancho total.
+      const template = getTemplate(blockIndex, count);
+      const block = document.createElement('div');
+      block.className = 'gallery__block gallery__block--desktop';
+      block.dataset.block = String(blockIndex);
+
+      if (template) {
+        block.style.gridTemplateRows = template.some(t => t.r === 3)
+          ? 'repeat(3, minmax(190px, 26vw))'
+          : 'repeat(2, minmax(210px, 28vw))';
+      }
+
+      for (let i = 0; i < count; i++) {
+        const item = items[cursor + i];
+        const img = item.querySelector('img');
+        const ratio = img.naturalWidth / img.naturalHeight;
+        item.classList.add('gallery__block-item');
+        item.dataset.block = String(blockIndex);
+        item.dataset.orientation = ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square';
+
+        const placement = template && template[i];
+        if (placement) {
+          item.style.gridColumn = placement.c + ' / span ' + placement.cs;
+          item.style.gridRow = placement.r + ' / span ' + placement.rs;
+        } else {
+          item.style.gridColumn = '1 / -1';
+        }
+
+        block.appendChild(item);
+      }
+
+      fragment.appendChild(block);
+      cursor += count;
+      blockIndex += 1;
+    }
+
+    gallery.appendChild(fragment);
   }
 
   function layoutAll() {
-    let ok = true;
-    document.querySelectorAll('.gallery').forEach(function (gallery) {
-      if (!layout(gallery)) ok = false;
-    });
-    return ok;
+    document.querySelectorAll('.gallery').forEach(makeBlocks);
+    document.documentElement.classList.add('gallery-ready');
   }
 
   const reveal = new IntersectionObserver(function (entries) {
@@ -155,7 +169,7 @@
         reveal.unobserve(entry.target);
       }
     });
-  }, { rootMargin: '0px 0px -5% 0px', threshold: 0.01 });
+  }, { rootMargin: '0px 0px -4% 0px', threshold: 0.01 });
 
   const digital = document.getElementById('digital');
   const analogue = document.getElementById('analogica');
@@ -167,26 +181,23 @@
     });
   }, { rootMargin: '-35% 0px -35% 0px', threshold: 0 });
 
-  function init() {
-    document.querySelectorAll('.gallery__item').forEach(function (item) {
-      reveal.observe(item);
-    });
-
-    // Esperamos a que estén cargadas TODAS las fotografías antes de mostrar
-    // la galería. El usuario nunca ve el estado de fotos apiladas.
+  function waitForImages() {
     const images = Array.from(document.querySelectorAll('.gallery img'));
-    const pending = images.map(function (img) {
+    return Promise.all(images.map(function (img) {
       if (img.complete && img.naturalWidth) return Promise.resolve();
       return new Promise(function (resolve) {
         img.addEventListener('load', resolve, { once: true });
         img.addEventListener('error', resolve, { once: true });
       });
-    });
+    }));
+  }
 
-    Promise.all(pending).then(function () {
-      if (layoutAll()) {
-        document.documentElement.classList.add('gallery-ready');
-      }
+  function init() {
+    waitForImages().then(function () {
+      layoutAll();
+      document.querySelectorAll('.gallery__item').forEach(function (item) {
+        reveal.observe(item);
+      });
     });
 
     if (digital) sectionObserver.observe(digital);
@@ -196,8 +207,12 @@
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
+        document.documentElement.classList.remove('gallery-ready');
         layoutAll();
-      }, 120);
+        document.querySelectorAll('.gallery__item').forEach(function (item) {
+          reveal.observe(item);
+        });
+      }, 150);
     }, { passive: true });
   }
 
