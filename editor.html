@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Editor · Marcos Carrascosa</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#ece8e1;color:#252320}button,input{font:inherit}button{cursor:pointer}
+.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}.sidebar{padding:18px;border-right:1px solid #d2ccc2;background:#f5f2ed;position:sticky;top:0;height:100vh;overflow:auto}.brand{font-size:11px;letter-spacing:.18em;font-weight:700}.muted{color:#777168;font-size:11px;line-height:1.45}.section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:24px 0 10px}.tools{display:grid;gap:7px}.tools button,.template{border:1px solid #cbc4ba;background:#fbfaf7;padding:9px 10px;text-align:left;font-size:11px}.tools button:hover,.template:hover{background:#eeeae3}.template.active{border-color:#252320;background:#e6e0d6}.divider{height:1px;background:#d8d2c9;margin:16px 0}.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.photo-thumb{aspect-ratio:1/1;border:1px solid #d2cbc2;background:#ddd7cf;overflow:hidden;position:relative;cursor:grab}.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}.photo-thumb.used{opacity:.35}.photo-thumb span{position:absolute;left:4px;bottom:3px;background:rgba(255,255,255,.78);font-size:8px;padding:2px 3px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.primary{background:#252320!important;color:#fff!important;border-color:#252320!important}.danger{background:#eee4e0!important}
+main{padding:20px 26px 70px;min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:16px}.topbar h1{font:400 32px/1 Georgia,serif;margin:0}.status{font-size:10px;color:#766f66}.stage-wrap{background:#ded8cf;padding:18px;overflow:auto}.stage{width:min(1500px,100%);margin:0 auto;background:#f5f2ed;padding:12px;min-height:820px}.canvas{position:relative;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(12,minmax(42px,1fr));gap:12px;min-height:780px}.slot{position:relative;min-width:0;min-height:0;background:#d4cec5;border:1px dashed #9f978c;overflow:hidden}.slot.selected{outline:2px solid #252320;outline-offset:2px}.slot.empty::after{content:'ARRASTRA UNA FOTO';position:absolute;inset:0;display:grid;place-items:center;font-size:9px;letter-spacing:.15em;color:#817a71}.slot img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;pointer-events:none}.slot-label{position:absolute;left:6px;top:5px;background:rgba(245,242,237,.82);padding:3px 4px;font-size:8px;z-index:2}.templates{display:grid;gap:6px}.template small{display:block;color:#776f66;margin-top:4px;font-size:9px}.control-row{display:grid;grid-template-columns:75px 1fr;gap:8px;align-items:center;margin:7px 0}.control-row label{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#70695f}.control-row input{width:100%}.selected-info{font-size:10px;line-height:1.45;color:#716a61;min-height:30px}.hint{font-size:9px;color:#817a71;line-height:1.45}.mobile-note{display:none}
+@media(max-width:900px){.app{grid-template-columns:250px 1fr}.stage{min-width:760px}.mobile-note{display:block}.topbar h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">MARCOS CARRASCOSA</div>
+  <div class="muted" style="margin-top:5px">Editor de retícula · uso interno</div>
+
+  <div class="section-title">Plantilla</div>
+  <div class="templates">
+    <button class="template active" data-template="a">A · 1 + 2 + 1 <small>Protagonista grande + dos apoyos</small></button>
+    <button class="template" data-template="b">B · 2 + 1 + 2 <small>Ritmo alterno y desplazado</small></button>
+    <button class="template" data-template="c">C · 1 + 1 + 2 + 1 <small>Más fragmentada y arquitectónica</small></button>
+    <button class="template" data-template="d">D · Libre <small>Huecos/modulos editables</small></button>
+  </div>
+
+  <div class="section-title">Foto seleccionada</div>
+  <div id="selectedInfo" class="selected-info">Selecciona un módulo o arrastra una foto.</div>
+  <div class="control-row"><label>Zoom</label><input id="zoom" type="range" min="1" max="2.8" step="0.01" value="1"></div>
+  <div class="control-row"><label>Pos X</label><input id="posX" type="range" min="0" max="100" step="1" value="50"></div>
+  <div class="control-row"><label>Pos Y</label><input id="posY" type="range" min="0" max="100" step="1" value="50"></div>
+  <div class="hint">También puedes arrastrar la imagen directamente dentro del módulo para ajustar el encuadre.</div>
+
+  <div class="divider"></div>
+  <div class="section-title">Fotos</div>
+  <div class="tools">
+    <button id="clearUsed">Liberar fotos usadas</button>
+  </div>
+  <div class="muted" style="margin:8px 0">Arrastra cualquier miniatura al módulo que quieras.</div>
+  <div id="photos" class="photos"></div>
+
+  <div class="divider"></div>
+  <div class="section-title">Proyecto</div>
+  <div class="actions">
+    <button id="saveLocal" class="primary">Guardar</button>
+    <button id="loadLocal">Cargar</button>
+    <button id="exportJson" class="primary">Exportar JSON</button>
+    <button id="newProject" class="danger">Nuevo</button>
+  </div>
+  <p class="hint" style="margin-top:9px">El JSON guarda la plantilla, el orden, el módulo de cada foto y el recorte. Después podemos usarlo directamente para construir la web final.</p>
+</aside>
+
+<main>
+  <div class="topbar"><h1>Editor de galería</h1><div id="status" class="status">Cambios sin guardar</div></div>
+  <div class="stage-wrap">
+    <div class="stage"><div id="canvas" class="canvas"></div></div>
+  </div>
+  <p class="hint mobile-note">En pantalla pequeña puedes desplazar horizontalmente la retícula. El diseño se ha pensado principalmente para escritorio.</p>
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+const DIGITAL=Array.from({length:27},(_,i)=>`digital/${String(i+1).padStart(3,'0')}.jpg`);
+const FILM=Array.from({length:10},(_,i)=>`film/${String(i+1).padStart(3,'0')}.jpg`);
+const PHOTOS=[...DIGITAL,...FILM];
+const templates={
+ a:[['s1',1,1,8,7],['s2',9,1,4,7],['s3',1,8,5,5],['s4',6,8,7,5]],
+ b:[['s1',1,1,4,7],['s2',5,1,8,5],['s3',5,6,4,7],['s4',9,6,4,7]],
+ c:[['s1',1,1,4,5],['s2',5,1,4,5],['s3',9,1,4,8],['s4',1,6,8,7],['s5',9,9,4,4]],
+ d:[['s1',1,1,5,5],['s2',7,1,6,4],['s3',1,7,4,6],['s4',6,6,7,6]]
+};
+let state={template:'a',slots:{},selected:null};
+let draggingPhoto=null,dragOffset={x:0,y:0};
+const canvas=document.getElementById('canvas'), photosEl=document.getElementById('photos'), selectedInfo=document.getElementById('selectedInfo'), statusEl=document.getElementById('status');
+const zoomEl=document.getElementById('zoom'), xEl=document.getElementById('posX'), yEl=document.getElementById('posY');
+
+function setStatus(t){statusEl.textContent=t}
+function getSlotDef(id){return templates[state.template].find(s=>s[0]===id)}
+function renderCanvas(){
+  canvas.innerHTML='';
+  templates[state.template].forEach(def=>{
+    const [id,col,row,w,h]=def;
+    const el=document.createElement('div'); el.className='slot empty'; el.dataset.slot=id;
+    el.style.gridColumn=`${col} / span ${w}`; el.style.gridRow=`${row} / span ${h}`;
+    const data=state.slots[id];
+    if(data){
+      el.classList.remove('empty');
+      const img=document.createElement('img'); img.src=data.src; img.alt='';
+      img.style.objectPosition=`${data.x}% ${data.y}%`;
+      img.style.transform=`scale(${data.zoom})`;
+      el.appendChild(img);
+      const label=document.createElement('div'); label.className='slot-label'; label.textContent=data.src.split('/').pop(); el.appendChild(label);
+    }
+    if(state.selected===id) el.classList.add('selected');
+    el.addEventListener('click',()=>selectSlot(id));
+    el.addEventListener('dragover',e=>{e.preventDefault();el.style.background='#c8c1b7'});
+    el.addEventListener('dragleave',()=>{el.style.background=''});
+    el.addEventListener('drop',e=>{e.preventDefault();el.style.background='';if(draggingPhoto) assignPhoto(id,draggingPhoto)});
+    el.addEventListener('pointerdown',e=>startPan(e,id));
+    canvas.appendChild(el);
+  });
+  renderPhotos();
+}
+function renderPhotos(){
+  photosEl.innerHTML='';
+  PHOTOS.forEach(src=>{
+    const b=document.createElement('div'); b.className='photo-thumb';
+    const used=Object.values(state.slots).some(s=>s.src===src); if(used)b.classList.add('used');
+    b.draggable=true; b.dataset.src=src;
+    const img=document.createElement('img'); img.src=src; img.loading='lazy'; b.appendChild(img);
+    const n=document.createElement('span');n.textContent=src.split('/').pop();b.appendChild(n);
+    b.addEventListener('dragstart',()=>draggingPhoto=src);
+    b.addEventListener('dragend',()=>draggingPhoto=null);
+    b.addEventListener('click',()=>{if(state.selected)assignPhoto(state.selected,src)});
+    photosEl.appendChild(b);
+  });
+}
+function selectSlot(id){state.selected=id;updateControls();renderCanvas()}
+function assignPhoto(slotId,src){
+  state.slots[slotId]={src,zoom:1,x:50,y:50};state.selected=slotId;setStatus('Cambios sin guardar');updateControls();renderCanvas()}
+function removeSelected(){if(state.selected&&state.slots[state.selected]){delete state.slots[state.selected];setStatus('Cambios sin guardar');updateControls();renderCanvas()}}
+function updateControls(){
+  const data=state.selected?state.slots[state.selected]:null;
+  if(!data){selectedInfo.textContent='Selecciona un módulo o arrastra una foto.';zoomEl.value=1;xEl.value=50;yEl.value=50;return}
+  selectedInfo.textContent=`${state.selected} · ${data.src}`;zoomEl.value=data.zoom;xEl.value=data.x;yEl.value=data.y;
+}
+function bindControl(el,key){el.addEventListener('input',()=>{if(!state.selected||!state.slots[state.selected])return;state.slots[state.selected][key]=Number(el.value);setStatus('Cambios sin guardar');renderCanvas()})}
+bindControl(zoomEl,'zoom');bindControl(xEl,'x');bindControl(yEl,'y');
+function startPan(e,id){
+  if(!state.slots[id])return;
+  if(e.button!==0)return;
+  state.selected=id;updateControls();
+  const slot=e.currentTarget, data=state.slots[id];
+  const startX=e.clientX,startY=e.clientY,startPX=data.x,startPY=data.y;
+  function move(ev){const r=slot.getBoundingClientRect();data.x=Math.max(0,Math.min(100,startPX-(ev.clientX-startX)/r.width*100));data.y=Math.max(0,Math.min(100,startPY-(ev.clientY-startY)/r.height*100));xEl.value=Math.round(data.x);yEl.value=Math.round(data.y);renderCanvas();setStatus('Cambios sin guardar')}
+  function up(){window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)}
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+  e.preventDefault();
+}
+document.querySelectorAll('.template').forEach(btn=>btn.addEventListener('click',()=>{state.template=btn.dataset.template;state.selected=null;document.querySelectorAll('.template').forEach(b=>b.classList.remove('active'));btn.classList.add('active');setStatus('Plantilla cambiada');renderCanvas()}));
+document.getElementById('clearUsed').addEventListener('click',()=>{state.slots={};state.selected=null;setStatus('Fotos liberadas');renderCanvas()});
+document.getElementById('newProject').addEventListener('click',()=>{if(confirm('¿Crear un proyecto nuevo?')){state={template:'a',slots:{},selected:null};document.querySelectorAll('.template').forEach(b=>b.classList.toggle('active',b.dataset.template==='a'));setStatus('Proyecto nuevo');renderCanvas()}});
+document.getElementById('saveLocal').addEventListener('click',()=>{localStorage.setItem('marcosGalleryEditor',JSON.stringify({template:state.template,slots:state.slots}));setStatus('Guardado en este navegador')});
+document.getElementById('loadLocal').addEventListener('click',()=>{try{const d=JSON.parse(localStorage.getItem('marcosGalleryEditor'));if(!d)throw new Error();state={template:d.template||'a',slots:d.slots||{},selected:null};document.querySelectorAll('.template').forEach(b=>b.classList.toggle('active',b.dataset.template===state.template));setStatus('Proyecto cargado');renderCanvas()}catch(e){setStatus('No hay proyecto guardado')}});
+document.getElementById('exportJson').addEventListener('click',()=>{const payload={version:1,generated:new Date().toISOString(),template:state.template,slots:state.slots};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gallery-config.json';a.click();URL.revokeObjectURL(a.href);setStatus('JSON exportado')});
+window.addEventListener('beforeunload',e=>{if(statusEl.textContent==='Cambios sin guardar'){e.preventDefault();e.returnValue=''}});
+renderCanvas();
+})();
+</script>
+</body>
+</html>
