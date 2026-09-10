@@ -1,4 +1,4 @@
-name: Optimizar fotografías
+name: Preparar fotografías web
 
 on:
   push:
@@ -8,18 +8,21 @@ on:
       - 'digital/**/*.jpeg'
       - 'film/**/*.jpg'
       - 'film/**/*.jpeg'
+      - '.rename-photos'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  optimize:
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Instalar Pillow
         run: python -m pip install --upgrade pillow
+
       - name: Optimizar JPG
         run: |
           python - <<'PY'
@@ -47,14 +50,62 @@ jobs:
                   except Exception as exc:
                       print(f'ERROR {p}: {exc}')
           PY
-      - name: Commit de imágenes optimizadas
+
+      - name: Renombrar fotografías a secuencial
+        if: ${{ hashFiles('.rename-photos') != '' }}
+        run: |
+          python - <<'PY'
+          from html import unescape
+          from pathlib import Path
+          import re
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          matches = re.findall(r'src="(digital|film)/([^"]+\.jpe?g)"', html, flags=re.I)
+
+          for medium in ('digital', 'film'):
+              ordered = []
+              for kind, html_name in matches:
+                  if kind != medium:
+                      continue
+                  fs_name = unescape(html_name)
+                  if fs_name not in ordered:
+                      ordered.append(fs_name)
+
+              root = Path(medium)
+              mapping = {}
+              for i, old in enumerate(ordered, start=1):
+                  src = root / old
+                  if not src.exists():
+                      raise FileNotFoundError(f'No existe {src}')
+                  mapping[old] = f'{i:03d}.jpg'
+
+              for i, old in enumerate(ordered, start=1):
+                  (root / old).rename(root / f'.__rename_{i:03d}.tmp')
+
+              for i in range(1, len(ordered) + 1):
+                  (root / f'.__rename_{i:03d}.tmp').rename(root / f'{i:03d}.jpg')
+
+              for old, new in mapping.items():
+                  html_old = next(hn for k, hn in matches if k == medium and unescape(hn) == old)
+                  html = html.replace(f'src="{medium}/{html_old}"', f'src="{medium}/{new}"')
+
+          index.write_text(html, encoding='utf-8')
+          Path('.rename-photos').unlink(missing_ok=True)
+          PY
+
+      - name: Commit de fotografías preparadas
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add digital film
+          git add digital film index.html
           if git diff --cached --quiet; then
             echo 'Sin cambios'
           else
-            git commit -m 'Optimizar fotografías para web'
+            if git diff --cached --name-status | grep -q '^R'; then
+              git commit -m 'Renombrar fotografías del portfolio'
+            else
+              git commit -m 'Preparar fotografías para web'
+            fi
             git push
           fi
