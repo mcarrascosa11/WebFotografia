@@ -3,108 +3,162 @@
 
   document.documentElement.classList.add('js-ready');
 
-  const DESKTOP_GAP = 14;
-  const TABLET_GAP = 12;
+  /*
+   * GALERÍA JUSTIFICADA
+   * -------------------
+   * No usamos masonry por columnas: es lo que estaba provocando los huecos.
+   * Cada fila se calcula como una composición completa:
+   * - todas las fotos de la fila tienen exactamente la misma altura;
+   * - sus anchos se calculan según su proporción real;
+   * - la suma de anchos + separaciones ocupa exactamente todo el ancho.
+   *
+   * Resultado: no hay agujeros verticales ni separaciones que cambien de
+   * tamaño. La composición sigue teniendo juego porque cada fila puede tener
+   * 2 o 3 fotografías y las proporciones cambian continuamente.
+   */
 
   function columns() {
-    if (window.innerWidth <= 640) return 1;
+    if (window.innerWidth <= 640) return 2;
     if (window.innerWidth <= 900) return 2;
     return 3;
   }
 
   function gap() {
     if (window.innerWidth <= 640) return 10;
-    if (window.innerWidth <= 900) return TABLET_GAP;
-    return DESKTOP_GAP;
+    if (window.innerWidth <= 900) return 12;
+    return 14;
   }
 
-  function typeOf(img) {
-    const r = img.naturalWidth / img.naturalHeight;
-    if (r > 1.05) return 'landscape';
-    if (r < 0.95) return 'portrait';
-    return 'square';
+  function targetHeight() {
+    if (window.innerWidth <= 640) return 190;
+    if (window.innerWidth <= 900) return 230;
+    return 300;
   }
 
-  function preferredSpan(type, index, count) {
-    if (count < 2) return 1;
-    // Wide images are occasional. Portraits can also become a deliberate
-    // two-column statement, but only when the masonry algorithm can do it
-    // without leaving a vertical hole.
-    if (index % 7 === 2) return 2;
-    if (type === 'landscape' && index % 5 === 1) return 2;
-    if (type === 'portrait' && index % 9 === 6) return 2;
-    return 1;
+  function aspect(img) {
+    return img.naturalWidth / img.naturalHeight;
+  }
+
+  function rowHeight(items, start, count, width, g) {
+    let ratios = 0;
+    for (let i = start; i < start + count; i++) {
+      ratios += aspect(items[i].querySelector('img'));
+    }
+    return (width - g * (count - 1)) / ratios;
+  }
+
+  function chooseRowCount(items, start, maxCount, width, g) {
+    const remaining = items.length - start;
+
+    if (remaining === 1) return 1;
+
+    const candidates = [];
+
+    // En escritorio alternamos 2/3 fotos por fila. En móvil mantenemos
+    // dos columnas, pero seguimos justificando la fila completa.
+    const min = maxCount === 2 ? 2 : 2;
+    const max = Math.min(maxCount, remaining);
+
+    for (let n = min; n <= max; n++) {
+      // Evita dejar una última fila de una sola foto cuando hay otra
+      // combinación posible.
+      const left = remaining - n;
+      if (left === 1 && remaining > n) continue;
+
+      const h = rowHeight(items, start, n, width, g);
+      const deviation = Math.abs(h - targetHeight());
+
+      // Penalización suave para filas exageradamente altas o bajas.
+      const penalty = h > targetHeight() * 1.65
+        ? (h - targetHeight() * 1.65) * 3
+        : h < targetHeight() * 0.55
+          ? (targetHeight() * 0.55 - h) * 2
+          : 0;
+
+      // Pequeña preferencia alterna para que no termine siendo siempre
+      // 3 + 3 + 3 + 3.
+      const rhythm = (Math.floor(start / 2) % 2 === 0)
+        ? (n === 2 ? 0 : 8)
+        : (n === 3 ? 0 : 8);
+
+      candidates.push({
+        n,
+        score: deviation + penalty + rhythm
+      });
+    }
+
+    candidates.sort((a, b) => a.score - b.score);
+    return candidates[0].n;
   }
 
   function layout(gallery) {
     const items = Array.from(gallery.querySelectorAll('.gallery__item'));
-    const count = columns();
     const g = gap();
     const width = gallery.clientWidth;
+
     if (!width || !items.length) return;
 
-    const colWidth = (width - g * (count - 1)) / count;
-    const heights = new Array(count).fill(0);
+    const maxPerRow = columns();
+    let y = 0;
+    let start = 0;
 
     gallery.style.position = 'relative';
     gallery.style.height = '0px';
 
-    items.forEach(function (item, index) {
-      const img = item.querySelector('img');
-      if (!img || !img.naturalWidth || !img.naturalHeight) return;
-
-      const type = typeOf(img);
-      const wanted = preferredSpan(type, index, count);
-      const candidates = [];
-
-      // First try a two-column composition only where the two columns have
-      // virtually the same skyline. This is the key to avoiding blank holes.
-      if (wanted === 2) {
-        for (let start = 0; start <= count - 2; start++) {
-          const h0 = heights[start];
-          const h1 = heights[start + 1];
-          const spread = Math.abs(h0 - h1);
-          if (spread > g * 2) continue;
-          const w = colWidth * 2 + g;
-          const h = w * img.naturalHeight / img.naturalWidth;
-          candidates.push({ span: 2, start, top: Math.max(h0, h1), width: w, height: h });
-        }
+    while (start < items.length) {
+      // Si todavía hay imágenes sin cargar, no inventamos dimensiones.
+      // Esperamos al evento load y recalculamos toda la composición.
+      const available = items.slice(start, start + maxPerRow);
+      if (available.some(item => {
+        const img = item.querySelector('img');
+        return !img || !img.naturalWidth || !img.naturalHeight;
+      })) {
+        return;
       }
 
-      // One-column placement always goes into the shortest column. This is
-      // true masonry: the next photograph fills the lowest available space.
-      for (let start = 0; start < count; start++) {
-        candidates.push({
-          span: 1,
-          start,
-          top: heights[start],
-          width: colWidth,
-          height: colWidth * img.naturalHeight / img.naturalWidth
-        });
-      }
+      const count = chooseRowCount(items, start, maxPerRow, width, g);
+      const rowItems = items.slice(start, start + count);
 
-      candidates.sort(function (a, b) {
-        if (Math.abs(a.top - b.top) > 1) return a.top - b.top;
-        if (a.span !== b.span) return a.span === wanted ? -1 : 1;
-        return a.start - b.start;
+      let ratioSum = 0;
+      rowItems.forEach(item => {
+        ratioSum += aspect(item.querySelector('img'));
       });
 
-      const chosen = candidates[0];
-      item.dataset.orientation = type;
-      item.dataset.span = String(chosen.span);
-      item.classList.add('is-' + type);
-      item.style.position = 'absolute';
-      item.style.width = chosen.width + 'px';
-      item.style.left = (chosen.start * (colWidth + g)) + 'px';
-      item.style.top = chosen.top + 'px';
+      const rowHeight = (width - g * (count - 1)) / ratioSum;
+      let x = 0;
 
-      const bottom = chosen.top + chosen.height + g;
-      for (let c = chosen.start; c < chosen.start + chosen.span; c++) {
-        heights[c] = bottom;
-      }
-    });
+      rowItems.forEach((item, index) => {
+        const img = item.querySelector('img');
+        const ratio = aspect(img);
 
-    gallery.style.height = Math.max(0, Math.max.apply(null, heights) - g) + 'px';
+        // El último elemento absorbe cualquier error de redondeo para que
+        // la fila termine exactamente en el borde derecho.
+        let itemWidth;
+        if (index === rowItems.length - 1) {
+          itemWidth = width - x;
+        } else {
+          itemWidth = ratio * rowHeight;
+        }
+
+        item.dataset.row = String(Math.floor(start / maxPerRow));
+        item.dataset.orientation =
+          ratio > 1.05 ? 'landscape' :
+          ratio < 0.95 ? 'portrait' : 'square';
+
+        item.style.position = 'absolute';
+        item.style.left = x + 'px';
+        item.style.top = y + 'px';
+        item.style.width = itemWidth + 'px';
+        item.style.height = rowHeight + 'px';
+
+        x += itemWidth + g;
+      });
+
+      y += rowHeight + g;
+      start += count;
+    }
+
+    gallery.style.height = Math.max(0, y - g) + 'px';
   }
 
   function layoutAll() {
@@ -140,19 +194,27 @@
   }, { rootMargin: '-35% 0px -35% 0px', threshold: 0 });
 
   function init() {
-    document.querySelectorAll('.gallery__item').forEach(function (item) { reveal.observe(item); });
+    document.querySelectorAll('.gallery__item').forEach(function (item) {
+      reveal.observe(item);
+    });
 
-    // Never wait for lazy images outside the viewport. Reflow after each image
-    // becomes available, so the visible gallery is always laid out.
     document.querySelectorAll('.gallery img').forEach(function (img) {
-      const redraw = function () { layout(img.closest('.gallery')); };
-      if (img.complete && img.naturalWidth) redraw();
-      else img.addEventListener('load', redraw, { once: true });
+      const redraw = function () {
+        layout(img.closest('.gallery'));
+      };
+
+      if (img.complete && img.naturalWidth) {
+        redraw();
+      } else {
+        img.addEventListener('load', redraw, { once: true });
+      }
     });
 
     if (digital) sectionObserver.observe(digital);
     if (analogue) sectionObserver.observe(analogue);
-    if (modeEl) setTimeout(function () { modeEl.classList.add('visible'); }, 400);
+    if (modeEl) setTimeout(function () {
+      modeEl.classList.add('visible');
+    }, 400);
 
     let resizeTimer;
     window.addEventListener('resize', function () {
