@@ -1,224 +1,87 @@
-(function () {
-  'use strict';
+(function(){
+'use strict';
 
-  document.documentElement.classList.add('js-ready');
+const templates={
+  a:[['s1',1,1,8,7],['s2',9,1,4,7],['s3',1,8,5,5],['s4',6,8,7,5]],
+  b:[['s1',1,1,4,12],['s2',5,1,4,4],['s3',9,1,4,4],['s4',5,5,8,8]],
+  c:[['s1',1,1,4,5],['s2',5,1,4,5],['s3',9,1,4,8],['s4',1,6,8,7],['s5',9,9,4,4]],
+  d:[['s1',1,1,5,5],['s2',7,1,6,4],['s3',1,7,4,6],['s4',6,6,7,6]]
+};
 
-  const DESKTOP_GAP = 14;
-  const MOBILE_GAP = 10;
+function renderZone(zone,index){
+  const section=document.createElement('section');
+  section.className='gallery-zone';
+  section.dataset.template=zone.template;
+  section.dataset.zone=String(index+1);
+  const grid=document.createElement('div');
+  grid.className='zone-grid zone-grid--'+zone.template;
 
-  /*
-   * MOSAICO EDITORIAL MODULAR
-   * -------------------------
-   * La retícula manda y las fotografías se adaptan a ella.
-   * No hay posiciones absolutas ni masonry: cada bloque es una composición
-   * cerrada de CSS Grid, de modo que no aparecen huecos verticales.
-   */
+  const defs=Object.fromEntries(templates[zone.template].map(d=>[d[0],d]));
+  Object.entries(zone.slots||{}).forEach(([slotId,data])=>{
+    const def=defs[slotId];
+    if(!def||!data||!data.src)return;
+    const figure=document.createElement('figure');
+    figure.className='zone__item';
+    figure.style.gridColumn=`${def[1]} / span ${def[3]}`;
+    figure.style.gridRow=`${def[2]} / span ${def[4]}`;
+    const img=document.createElement('img');
+    img.src=data.src;
+    img.alt='Fotografía de boda';
+    img.loading='lazy';
+    img.decoding='async';
+    const x=Number.isFinite(data.x)?data.x:50;
+    const y=Number.isFinite(data.y)?data.y:50;
+    const zoom=Number.isFinite(data.zoom)?data.zoom:1;
+    img.style.objectPosition=`${x}% ${y}%`;
+    img.style.transform=`scale(${zoom})`;
+    figure.appendChild(img);
+    grid.appendChild(figure);
+  });
 
-  const templatesDesktop = [
-    // 5 fotos: horizontal protagonista + cuatro apoyos.
-    [
-      { c: 1, r: 1, cs: 2, rs: 1 },
-      { c: 3, r: 1, cs: 1, rs: 1 },
-      { c: 1, r: 2, cs: 1, rs: 1 },
-      { c: 2, r: 2, cs: 1, rs: 1 },
-      { c: 3, r: 2, cs: 1, rs: 1 }
-    ],
-    // 5 fotos: vertical protagonista + cuatro apoyos.
-    [
-      { c: 1, r: 1, cs: 1, rs: 2 },
-      { c: 2, r: 1, cs: 1, rs: 1 },
-      { c: 3, r: 1, cs: 1, rs: 1 },
-      { c: 2, r: 2, cs: 1, rs: 1 },
-      { c: 3, r: 2, cs: 1, rs: 1 }
-    ],
-    // 6 fotos: dos piezas de dos columnas + dos pequeñas abajo.
-    [
-      { c: 1, r: 1, cs: 1, rs: 1 },
-      { c: 2, r: 1, cs: 2, rs: 1 },
-      { c: 1, r: 2, cs: 2, rs: 1 },
-      { c: 3, r: 2, cs: 1, rs: 1 },
-      { c: 1, r: 3, cs: 1, rs: 1 },
-      { c: 2, r: 3, cs: 2, rs: 1 }
-    ],
-    // 5 fotos: composición desplazada.
-    [
-      { c: 1, r: 1, cs: 1, rs: 1 },
-      { c: 2, r: 1, cs: 2, rs: 1 },
-      { c: 1, r: 2, cs: 2, rs: 1 },
-      { c: 3, r: 2, cs: 1, rs: 1 },
-      { c: 1, r: 3, cs: 3, rs: 1 }
-    ],
-    // 5 fotos: gran horizontal abajo.
-    [
-      { c: 1, r: 1, cs: 1, rs: 1 },
-      { c: 2, r: 1, cs: 1, rs: 1 },
-      { c: 3, r: 1, cs: 1, rs: 1 },
-      { c: 1, r: 2, cs: 1, rs: 1 },
-      { c: 2, r: 2, cs: 2, rs: 1 }
-    ]
-  ];
+  section.appendChild(grid);
+  return section;
+}
 
-  const blockCounts = [5, 5, 6, 5, 6]; // 27 digitales
+function updateMode(){
+  const a=document.getElementById('analogica');
+  if(!a)return;
+  const rect=a.getBoundingClientRect();
+  const active=rect.top < window.innerHeight*.55;
+  document.body.classList.toggle('mode-analogue',active);
+}
 
-  function isMobile() {
-    return window.innerWidth <= 640;
-  }
-
-  function gap() {
-    return isMobile() ? MOBILE_GAP : DESKTOP_GAP;
-  }
-
-  function getTemplate(index, count) {
-    if (isMobile()) return null;
-    return templatesDesktop[index % templatesDesktop.length].slice(0, count);
-  }
-
-  function clearBlocks(gallery) {
-    const items = Array.from(gallery.querySelectorAll('.gallery__item'));
-    items.forEach(function (item) {
-      item.removeAttribute('style');
-      item.removeAttribute('data-block');
-      item.removeAttribute('data-orientation');
-      item.classList.remove('gallery__block-item');
-    });
-    gallery.querySelectorAll('.gallery__block').forEach(function (block) {
-      block.replaceWith(...Array.from(block.children));
-    });
-    return items;
-  }
-
-  function makeBlocks(gallery) {
-    const items = clearBlocks(gallery);
-    const fragment = document.createDocumentFragment();
-    let cursor = 0;
-    let blockIndex = 0;
-
-    if (isMobile()) {
-      // En móvil: 2 columnas, ritmo sencillo y sin huecos. El último elemento
-      // de una pareja impar ocupa toda la fila.
-      const block = document.createElement('div');
-      block.className = 'gallery__block gallery__block--mobile';
-      items.forEach(function (item, index) {
-        const img = item.querySelector('img');
-        const ratio = img.naturalWidth / img.naturalHeight;
-        item.classList.add('gallery__block-item');
-        item.dataset.orientation = ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square';
-        if (index === items.length - 1 && items.length % 2 === 1) {
-          item.style.gridColumn = '1 / -1';
-        }
-        block.appendChild(item);
+function init(){
+  fetch('gallery-config.json',{cache:'no-store'})
+    .then(r=>{
+      if(!r.ok)throw new Error('No se pudo cargar la composición');
+      return r.json();
+    })
+    .then(config=>{
+      const digital=document.getElementById('digital');
+      const analogue=document.getElementById('analogica');
+      (config.zones||[]).forEach((zone,i)=>{
+        const target=zone.type==='analogue'?analogue:digital;
+        if(target)target.appendChild(renderZone(zone,i));
       });
-      fragment.appendChild(block);
-      gallery.appendChild(fragment);
-      return;
-    }
-
-    while (cursor < items.length) {
-      let count = blockCounts[blockIndex % blockCounts.length];
-      count = Math.min(count, items.length - cursor);
-
-      // El bloque final se completa con una plantilla válida siempre que sea
-      // posible. Para 1–2 fotografías usamos una composición de ancho total.
-      const template = getTemplate(blockIndex, count);
-      const block = document.createElement('div');
-      block.className = 'gallery__block gallery__block--desktop';
-      block.dataset.block = String(blockIndex);
-
-      if (template) {
-        block.style.gridTemplateRows = template.some(t => t.r === 3)
-          ? 'repeat(3, minmax(190px, 26vw))'
-          : 'repeat(2, minmax(210px, 28vw))';
-      }
-
-      for (let i = 0; i < count; i++) {
-        const item = items[cursor + i];
-        const img = item.querySelector('img');
-        const ratio = img.naturalWidth / img.naturalHeight;
-        item.classList.add('gallery__block-item');
-        item.dataset.block = String(blockIndex);
-        item.dataset.orientation = ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square';
-
-        const placement = template && template[i];
-        if (placement) {
-          item.style.gridColumn = placement.c + ' / span ' + placement.cs;
-          item.style.gridRow = placement.r + ' / span ' + placement.rs;
-        } else {
-          item.style.gridColumn = '1 / -1';
-        }
-
-        block.appendChild(item);
-      }
-
-      fragment.appendChild(block);
-      cursor += count;
-      blockIndex += 1;
-    }
-
-    gallery.appendChild(fragment);
-  }
-
-  function layoutAll() {
-    document.querySelectorAll('.gallery').forEach(makeBlocks);
-    document.documentElement.classList.add('gallery-ready');
-  }
-
-  const reveal = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('revealed');
-        reveal.unobserve(entry.target);
-      }
-    });
-  }, { rootMargin: '0px 0px -4% 0px', threshold: 0.01 });
-
-  const digital = document.getElementById('digital');
-  const analogue = document.getElementById('analogica');
-
-  const sectionObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      document.body.classList.toggle('mode-analogue', entry.target.id === 'analogica');
-    });
-  }, { rootMargin: '-35% 0px -35% 0px', threshold: 0 });
-
-  function waitForImages() {
-    const images = Array.from(document.querySelectorAll('.gallery img'));
-    return Promise.all(images.map(function (img) {
-      if (img.complete && img.naturalWidth) return Promise.resolve();
-      return new Promise(function (resolve) {
-        img.addEventListener('load', resolve, { once: true });
-        img.addEventListener('error', resolve, { once: true });
-      });
-    }));
-  }
-
-  function init() {
-    waitForImages().then(function () {
-      layoutAll();
-      document.querySelectorAll('.gallery__item').forEach(function (item) {
-        reveal.observe(item);
-      });
+      updateMode();
+    })
+    .catch(err=>{
+      console.error(err);
+      document.body.classList.add('config-error');
     });
 
-    if (digital) sectionObserver.observe(digital);
-    if (analogue) sectionObserver.observe(analogue);
+  document.querySelectorAll('.header__mode-link').forEach(link=>{
+    link.addEventListener('click',e=>{
+      const target=document.querySelector(link.getAttribute('href'));
+      if(!target)return;
+      e.preventDefault();
+      target.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
 
-    let resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        document.documentElement.classList.remove('gallery-ready');
-        layoutAll();
-        document.querySelectorAll('.gallery__item').forEach(function (item) {
-          reveal.observe(item);
-        });
-      }, 150);
-    }, { passive: true });
-  }
+  window.addEventListener('scroll',updateMode,{passive:true});
+}
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+else init();
 })();
