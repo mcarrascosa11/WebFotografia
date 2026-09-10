@@ -1,12 +1,11 @@
 (function () {
   'use strict';
 
-  // Marcar que JS está listo — activa las animaciones del CSS
   document.documentElement.classList.remove('no-js');
   document.documentElement.classList.add('js-ready');
 
   // ==========================================
-  // Detección de orientación (para clases CSS extra)
+  // Detección de orientación real
   // ==========================================
   function detectOrientation(img) {
     const w = img.naturalWidth, h = img.naturalHeight;
@@ -17,26 +16,41 @@
     return 'square';
   }
 
+  // ==========================================
+  // Asignar spans fila a fila SIN HUECOS
+  // ==========================================
+  function assignSpans(figures) {
+    let col = 0;
+
+    figures.forEach(function (fig) {
+      const img = fig.querySelector('img');
+      const o = (img && img.dataset.orientation) || 'portrait';
+
+      let span = 1;
+
+      if (o === 'landscape') {
+        // Landscape: 2 columnas si caben, si no 1
+        span = (col <= 1) ? 2 : 1;
+      }
+
+      // Si no cabe en lo que queda de fila, cerramos fila
+      if (col + span > 3) {
+        col = 0;
+        span = (o === 'landscape') ? 2 : 1;
+      }
+
+      fig.dataset.span = String(span);
+      col += span;
+      if (col >= 3) col = 0;
+    });
+  }
+
   function processImage(img) {
     const fig = img.closest('.gallery__item');
     if (!fig) return;
     const o = detectOrientation(img);
+    img.dataset.orientation = o;
     fig.classList.add('is-' + o);
-
-    // Si un item no tiene data-span explícito, lo calculamos:
-    // - horizontal → alterna 1 y 2
-    // - vertical   → 1 (pero rompe ritmo a 2 cada 5)
-    // - cuadrada   → 1
-    if (!fig.dataset.span) {
-      const idx = Array.from(fig.parentNode.children).indexOf(fig);
-      if (o === 'landscape') {
-        fig.dataset.span = (idx % 2 === 0) ? '2' : '1';
-      } else if (o === 'portrait') {
-        fig.dataset.span = (idx > 0 && idx % 5 === 0) ? '2' : '1';
-      } else {
-        fig.dataset.span = '1';
-      }
-    }
   }
 
   // ==========================================
@@ -83,14 +97,32 @@
   // Init
   // ==========================================
   function init() {
-    document.querySelectorAll('.gallery__item img').forEach(function (img) {
-      if (img.complete && img.naturalWidth > 0) {
-        processImage(img);
-      } else {
-        img.addEventListener('load', function () { processImage(img); }, { once: true });
+    const galleries = document.querySelectorAll('.gallery');
+
+    galleries.forEach(function (gallery) {
+      const figures = Array.from(gallery.querySelectorAll('.gallery__item'));
+      const imgs = figures.map(function (f) { return f.querySelector('img'); }).filter(Boolean);
+
+      let pending = imgs.length;
+
+      function onLoad() {
+        pending--;
+        if (pending <= 0) {
+          imgs.forEach(processImage);
+          assignSpans(figures);
+        }
       }
-      const fig = img.closest('.gallery__item');
-      if (fig) reveal.observe(fig);
+
+      imgs.forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) {
+          onLoad();
+        } else {
+          img.addEventListener('load', onLoad, { once: true });
+          img.addEventListener('error', onLoad, { once: true });
+        }
+      });
+
+      figures.forEach(function (fig) { reveal.observe(fig); });
     });
 
     if (digitalSection) sectionObs.observe(digitalSection);
