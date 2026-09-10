@@ -55,25 +55,21 @@ img { display: block; width: 100%; height: auto; }
   color: var(--text-muted);
   text-transform: uppercase;
 }
-.header__mode {
+.header__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
   margin-top: 18px;
+}
+.header__mode-link {
   font-size: 8px;
   line-height: 1;
   letter-spacing: .25em;
   color: var(--text-muted);
   text-transform: uppercase;
-  opacity: 0;
-  transition: opacity .4s ease;
+  transition: opacity .25s ease;
 }
-.header__mode.visible { opacity: 1; }
-.header__contact {
-  margin-top: 9px;
-  font-size: 8px;
-  line-height: 1;
-  letter-spacing: .17em;
-  text-transform: uppercase;
-}
-.header__contact:hover { opacity: .55; }
+.header__mode-link:hover { opacity: .45; }
 
 /* Masonry libre de 3 columnas. El JS solo calcula posiciones; nunca recorta fotografías. */
 .gallery-section {
@@ -162,8 +158,7 @@ img { display: block; width: 100%; height: auto; }
     flex-direction: column;
     gap: 3px;
   }
-  .header__mode { margin-top: 9px; }
-  .header__contact { margin-top: 6px; }
+  .header__nav { margin-top: 9px; gap: 7px; }
   .gallery-section { margin-left: 0; padding-left: 14px; padding-right: 14px; }
   .gallery-section--digital { padding-top: 76px; }
   .gallery-section--analogue { padding-top: 66px; padding-bottom: 70px; }
