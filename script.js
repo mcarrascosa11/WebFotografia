@@ -4,17 +4,16 @@
   document.documentElement.classList.add('js-ready');
 
   /*
-   * GALERÍA JUSTIFICADA
-   * -------------------
-   * No usamos masonry por columnas: es lo que estaba provocando los huecos.
-   * Cada fila se calcula como una composición completa:
-   * - todas las fotos de la fila tienen exactamente la misma altura;
-   * - sus anchos se calculan según su proporción real;
-   * - la suma de anchos + separaciones ocupa exactamente todo el ancho.
+   * MOSAICO EDITORIAL
+   * -----------------
+   * La galería vuelve a una retícula de 3 columnas en escritorio, pero ya no
+   * se fuerza a filas perfectamente alineadas. Cada fotografía conserva su
+   * proporción real y puede ocupar 1 o 2 columnas. El algoritmo busca siempre
+   * la posición con menor altura final para aprovechar el espacio y mantener
+   * una composición irregular pero controlada.
    *
-   * Resultado: no hay agujeros verticales ni separaciones que cambien de
-   * tamaño. La composición sigue teniendo juego porque cada fila puede tener
-   * 2 o 3 fotografías y las proporciones cambian continuamente.
+   * Importante: no se maqueta nada hasta que TODAS las imágenes estén cargadas.
+   * Así nunca se ve la pila inicial de fotos unas encima de otras.
    */
 
   function columns() {
@@ -29,140 +28,124 @@
     return 14;
   }
 
-  function targetHeight() {
-    if (window.innerWidth <= 640) return 190;
-    if (window.innerWidth <= 900) return 230;
-    return 300;
-  }
-
   function aspect(img) {
     return img.naturalWidth / img.naturalHeight;
   }
 
-  function rowHeight(items, start, count, width, g) {
-    let ratios = 0;
-    for (let i = start; i < start + count; i++) {
-      ratios += aspect(items[i].querySelector('img'));
-    }
-    return (width - g * (count - 1)) / ratios;
+  function preferredSpan(type, index, count) {
+    if (count < 2) return 1;
+
+    // Alternancia deliberada: algunos horizontales se convierten en piezas
+    // protagonistas de dos columnas; las verticales mantienen normalmente
+    // una columna para conservar variedad de ritmo.
+    if (type === 'landscape' && index % 6 === 1) return 2;
+    if (type === 'landscape' && index % 9 === 5) return 2;
+    if (type === 'portrait' && index % 13 === 8) return 2;
+    return 1;
   }
 
-  function chooseRowCount(items, start, maxCount, width, g) {
-    const remaining = items.length - start;
-
-    if (remaining === 1) return 1;
-
+  function candidatesFor(span, start, heights, colWidth, g, img) {
+    const count = heights.length;
     const candidates = [];
 
-    // En escritorio alternamos 2/3 fotos por fila. En móvil mantenemos
-    // dos columnas, pero seguimos justificando la fila completa.
-    const min = maxCount === 2 ? 2 : 2;
-    const max = Math.min(maxCount, remaining);
+    for (let c = 0; c <= count - span; c++) {
+      const top = Math.max.apply(null, heights.slice(c, c + span));
+      const spread = Math.max.apply(null, heights.slice(c, c + span)) -
+        Math.min.apply(null, heights.slice(c, c + span));
+      const width = colWidth * span + g * (span - 1);
+      const height = width / aspect(img);
 
-    for (let n = min; n <= max; n++) {
-      // Evita dejar una última fila de una sola foto cuando hay otra
-      // combinación posible.
-      const left = remaining - n;
-      if (left === 1 && remaining > n) continue;
+      // Un span de 2 columnas solo entra cuando no crea un salto enorme sobre
+      // la columna vecina. El umbral permite dinamismo sin grandes huecos.
+      if (span === 2 && spread > Math.max(70, g * 5)) continue;
 
-      const h = rowHeight(items, start, n, width, g);
-      const deviation = Math.abs(h - targetHeight());
-
-      // Penalización suave para filas exageradamente altas o bajas.
-      const penalty = h > targetHeight() * 1.65
-        ? (h - targetHeight() * 1.65) * 3
-        : h < targetHeight() * 0.55
-          ? (targetHeight() * 0.55 - h) * 2
-          : 0;
-
-      // Pequeña preferencia alterna para que no termine siendo siempre
-      // 3 + 3 + 3 + 3.
-      const rhythm = (Math.floor(start / 2) % 2 === 0)
-        ? (n === 2 ? 0 : 8)
-        : (n === 3 ? 0 : 8);
+      const next = heights.slice();
+      const bottom = top + height + g;
+      for (let i = c; i < c + span; i++) next[i] = bottom;
 
       candidates.push({
-        n,
-        score: deviation + penalty + rhythm
+        span,
+        start: c,
+        top,
+        width,
+        height,
+        maxAfter: Math.max.apply(null, next),
+        spreadAfter: Math.max.apply(null, next) - Math.min.apply(null, next)
       });
     }
 
-    candidates.sort((a, b) => a.score - b.score);
-    return candidates[0].n;
+    return candidates;
   }
 
   function layout(gallery) {
     const items = Array.from(gallery.querySelectorAll('.gallery__item'));
+    const count = columns();
     const g = gap();
     const width = gallery.clientWidth;
+    if (!width || !items.length) return false;
 
-    if (!width || !items.length) return;
-
-    const maxPerRow = columns();
-    let y = 0;
-    let start = 0;
+    const colWidth = (width - g * (count - 1)) / count;
+    const heights = new Array(count).fill(0);
 
     gallery.style.position = 'relative';
     gallery.style.height = '0px';
 
-    while (start < items.length) {
-      // Si todavía hay imágenes sin cargar, no inventamos dimensiones.
-      // Esperamos al evento load y recalculamos toda la composición.
-      const available = items.slice(start, start + maxPerRow);
-      if (available.some(item => {
-        const img = item.querySelector('img');
-        return !img || !img.naturalWidth || !img.naturalHeight;
-      })) {
-        return;
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      const img = item.querySelector('img');
+
+      if (!img || !img.naturalWidth || !img.naturalHeight) {
+        return false;
       }
 
-      const count = chooseRowCount(items, start, maxPerRow, width, g);
-      const rowItems = items.slice(start, start + count);
+      const type = aspect(img) > 1.05 ? 'landscape' : aspect(img) < 0.95 ? 'portrait' : 'square';
+      const wanted = preferredSpan(type, index, count);
+      const options = [];
 
-      let ratioSum = 0;
-      rowItems.forEach(item => {
-        ratioSum += aspect(item.querySelector('img'));
+      // Primero valoramos el span buscado y después siempre dejamos disponible
+      // el de una columna como alternativa de emergencia.
+      if (wanted === 2) options.push(...candidatesFor(2, index, heights, colWidth, g, img));
+      options.push(...candidatesFor(1, index, heights, colWidth, g, img));
+
+      if (!options.length) return false;
+
+      options.sort(function (a, b) {
+        // Preferimos que la foto termine en la menor altura global posible.
+        if (Math.abs(a.maxAfter - b.maxAfter) > 1) return a.maxAfter - b.maxAfter;
+
+        // A igualdad, preferimos el span buscado para mantener el ritmo.
+        if (a.span !== b.span) return a.span === wanted ? -1 : 1;
+
+        // Y después, la opción que deje más equilibradas las columnas.
+        if (Math.abs(a.spreadAfter - b.spreadAfter) > 1) return a.spreadAfter - b.spreadAfter;
+        return a.start - b.start;
       });
 
-      const rowHeight = (width - g * (count - 1)) / ratioSum;
-      let x = 0;
+      const chosen = options[0];
+      item.dataset.orientation = type;
+      item.dataset.span = String(chosen.span);
+      item.style.position = 'absolute';
+      item.style.left = (chosen.start * (colWidth + g)) + 'px';
+      item.style.top = chosen.top + 'px';
+      item.style.width = chosen.width + 'px';
+      item.style.height = 'auto';
 
-      rowItems.forEach((item, index) => {
-        const img = item.querySelector('img');
-        const ratio = aspect(img);
-
-        // El último elemento absorbe cualquier error de redondeo para que
-        // la fila termine exactamente en el borde derecho.
-        let itemWidth;
-        if (index === rowItems.length - 1) {
-          itemWidth = width - x;
-        } else {
-          itemWidth = ratio * rowHeight;
-        }
-
-        item.dataset.row = String(Math.floor(start / maxPerRow));
-        item.dataset.orientation =
-          ratio > 1.05 ? 'landscape' :
-          ratio < 0.95 ? 'portrait' : 'square';
-
-        item.style.position = 'absolute';
-        item.style.left = x + 'px';
-        item.style.top = y + 'px';
-        item.style.width = itemWidth + 'px';
-        item.style.height = rowHeight + 'px';
-
-        x += itemWidth + g;
-      });
-
-      y += rowHeight + g;
-      start += count;
+      const bottom = chosen.top + chosen.height + g;
+      for (let c = chosen.start; c < chosen.start + chosen.span; c++) {
+        heights[c] = bottom;
+      }
     }
 
-    gallery.style.height = Math.max(0, y - g) + 'px';
+    gallery.style.height = Math.max(0, Math.max.apply(null, heights) - g) + 'px';
+    return true;
   }
 
   function layoutAll() {
-    document.querySelectorAll('.gallery').forEach(layout);
+    let ok = true;
+    document.querySelectorAll('.gallery').forEach(function (gallery) {
+      if (!layout(gallery)) ok = false;
+    });
+    return ok;
   }
 
   const reveal = new IntersectionObserver(function (entries) {
@@ -174,22 +157,13 @@
     });
   }, { rootMargin: '0px 0px -5% 0px', threshold: 0.01 });
 
-  const modeEl = document.getElementById('modeIndicator');
   const digital = document.getElementById('digital');
   const analogue = document.getElementById('analogica');
-  let currentMode = 'digital';
-
-  function setMode(mode) {
-    if (mode === currentMode) return;
-    currentMode = mode;
-    document.body.classList.toggle('mode-analogue', mode === 'analogue');
-    if (modeEl) modeEl.textContent = mode === 'analogue' ? 'ANALÓGICA' : 'DIGITAL';
-  }
 
   const sectionObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (!entry.isIntersecting) return;
-      setMode(entry.target.id === 'analogica' ? 'analogue' : 'digital');
+      document.body.classList.toggle('mode-analogue', entry.target.id === 'analogica');
     });
   }, { rootMargin: '-35% 0px -35% 0px', threshold: 0 });
 
@@ -198,31 +172,33 @@
       reveal.observe(item);
     });
 
-    document.querySelectorAll('.gallery img').forEach(function (img) {
-      const redraw = function () {
-        layout(img.closest('.gallery'));
-      };
+    // Esperamos a que estén cargadas TODAS las fotografías antes de mostrar
+    // la galería. El usuario nunca ve el estado de fotos apiladas.
+    const images = Array.from(document.querySelectorAll('.gallery img'));
+    const pending = images.map(function (img) {
+      if (img.complete && img.naturalWidth) return Promise.resolve();
+      return new Promise(function (resolve) {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    });
 
-      if (img.complete && img.naturalWidth) {
-        redraw();
-      } else {
-        img.addEventListener('load', redraw, { once: true });
+    Promise.all(pending).then(function () {
+      if (layoutAll()) {
+        document.documentElement.classList.add('gallery-ready');
       }
     });
 
     if (digital) sectionObserver.observe(digital);
     if (analogue) sectionObserver.observe(analogue);
-    if (modeEl) setTimeout(function () {
-      modeEl.classList.add('visible');
-    }, 400);
 
     let resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(layoutAll, 100);
+      resizeTimer = setTimeout(function () {
+        layoutAll();
+      }, 120);
     }, { passive: true });
-
-    layoutAll();
   }
 
   if (document.readyState === 'loading') {
