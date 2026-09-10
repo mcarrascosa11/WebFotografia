@@ -17,7 +17,10 @@
   }
 
   // ==========================================
-  // Asignar spans fila a fila SIN HUECOS
+  // Asignar spans en filas de 3 columnas.
+  // Regla clave: si la foto es horizontal y caben 2 columnas
+  // libres en la fila actual → span 2. Si no, span 1 y se
+  // coloca junto a lo que venga después con dense.
   // ==========================================
   function assignSpans(figures) {
     let col = 0;
@@ -28,12 +31,10 @@
 
       let span = 1;
 
-      if (o === 'landscape') {
-        // Landscape: 2 columnas si caben, si no 1
-        span = (col <= 1) ? 2 : 1;
+      if (o === 'landscape' && col <= 1) {
+        span = 2;
       }
 
-      // Si no cabe en lo que queda de fila, cerramos fila
       if (col + span > 3) {
         col = 0;
         span = (o === 'landscape') ? 2 : 1;
