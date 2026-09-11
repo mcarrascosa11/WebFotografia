@@ -38,7 +38,7 @@
 <body>
 <header class="header">
   <div class="header__rail">
-    <a href="#digital" class="header__name">MARCOS CARRASCOSA</a>
+    <h1 class="header__name">MARCOS CARRASCOSA</h1>
     <span class="header__subtitle">FOTOGRAFÍA DE BODAS</span>
     <nav class="header__nav" aria-label="Navegación">
       <a href="#digital" class="header__mode-link">DIGITAL</a>
@@ -53,8 +53,12 @@
   </div>
 </header>
 <main>
-  <section id="digital" class="gallery-mode gallery-mode--digital" aria-label="Fotografía digital"></section>
-  <section id="analogica" class="gallery-mode gallery-mode--analogue" aria-label="Fotografía analógica"></section>
+  <section id="digital" class="gallery-mode gallery-mode--digital" aria-labelledby="digital-title">
+    <h2 id="digital-title" class="sr-only">Fotografía de bodas digital</h2>
+  </section>
+  <section id="analogica" class="gallery-mode gallery-mode--analogue" aria-labelledby="analogica-title">
+    <h2 id="analogica-title" class="sr-only">Fotografía de bodas analógica</h2>
+  </section>
 </main>
 <script src="script.js"></script>
 </body>
