@@ -28,7 +28,15 @@ function renderZone(zone,index){
     if(!def||!data||!data.src)return;
     const figure=document.createElement('figure');
     figure.className='zone__item';
-    figure.style.gridColumn=`${def[1]} / span ${def[3]}`;
+    const mobile=window.matchMedia('(max-width: 640px)').matches;
+    if(mobile){
+      const start=def[1], end=def[1]+def[3]-1;
+      const mobileStart=Math.floor((start-1)/4)+1;
+      const mobileEnd=Math.ceil(end/4);
+      figure.style.gridColumn=`${mobileStart} / ${mobileEnd+1}`;
+    }else{
+      figure.style.gridColumn=`${def[1]} / span ${def[3]}`;
+    }
     figure.style.gridRow=`${def[2]} / span ${def[4]}`;
     figure.dataset.photoSrc=data.src;
 
