@@ -12,6 +12,7 @@ let galleryImages=[];
 let currentIndex=-1;
 let touchStartX=0;
 let touchStartY=0;
+let scrollAnimation=null;
 
 function renderZone(zone,index){
   const section=document.createElement('section');
@@ -133,6 +134,24 @@ function onKeydown(e){
   if(e.key==='ArrowRight')showLightbox(currentIndex+1);
 }
 
+function fastScrollTo(target){
+  if(scrollAnimation)cancelAnimationFrame(scrollAnimation);
+  const start=window.scrollY;
+  const destination=Math.max(0,start+target.getBoundingClientRect().top);
+  const distance=destination-start;
+  const duration=Math.min(650,Math.max(350,Math.abs(distance)*0.45));
+  const startTime=performance.now();
+
+  function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+  function step(now){
+    const progress=Math.min(1,(now-startTime)/duration);
+    window.scrollTo(0,start+distance*easeOutCubic(progress));
+    if(progress<1)scrollAnimation=requestAnimationFrame(step);
+    else scrollAnimation=null;
+  }
+  scrollAnimation=requestAnimationFrame(step);
+}
+
 function init(){
   buildLightbox();
   fetch('gallery-config.json',{cache:'no-store'})
@@ -160,7 +179,8 @@ function init(){
       const target=document.querySelector(link.getAttribute('href'));
       if(!target)return;
       e.preventDefault();
-      target.scrollIntoView({behavior:'smooth',block:'start'});
+      fastScrollTo(target);
+      history.replaceState(null,'',link.getAttribute('href'));
     });
   });
 
