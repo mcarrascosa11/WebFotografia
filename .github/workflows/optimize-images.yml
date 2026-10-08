@@ -8,7 +8,6 @@ on:
       - 'digital/**/*.jpeg'
       - 'film/**/*.jpg'
       - 'film/**/*.jpeg'
-      - 'index.html'
       - '.rename-photos'
   workflow_dispatch:
 
@@ -39,6 +38,10 @@ jobs:
                   try:
                       with Image.open(p) as im:
                           im = ImageOps.exif_transpose(im)
+                          # Already prepared photos are left alone: re-saving a JPG loses quality
+                          # and makes a new commit (and a new Vercel deployment) every run
+                          if im.width <= 2400 and p.stat().st_size <= 2_000_000:
+                              continue
                           if im.mode not in ('RGB', 'L'):
                               im = im.convert('RGB')
                           if im.width > 2400:
@@ -95,10 +98,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add digital film index.html
+          git add -A digital film index.html
+          # Commit the removal of .rename-photos too, so the renaming runs only once
+          git rm -q --cached --ignore-unmatch .rename-photos
           if git diff --cached --quiet; then
             echo 'Sin cambios'
           else
-            git commit -m 'Renombrar fotografías del portfolio'
+            git commit -m 'Preparar fotografías del portfolio'
             git push
           fi
